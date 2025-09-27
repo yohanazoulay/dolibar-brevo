@@ -214,9 +214,25 @@ try {
             unset($conf->global->BREVO_APIKEY);
             setEventMessages($langs->trans('BrevoApiKeyRemoved'), null, 'mesgs');
         } else {
-            dolibarr_set_const($db, 'BREVO_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
-            $conf->global->BREVO_APIKEY = $apiKey;
-            setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+            $client = new BrevoClient($db, $conf, $apiKey);
+            $result = $client->validateApiKey($apiKey);
+
+            $httpCode = isset($result['http_code']) ? (int) $result['http_code'] : 0;
+            $duration = isset($result['duration_ms']) ? (int) $result['duration_ms'] : 0;
+            $success = !empty($result['success']);
+            $errorMessage = isset($result['error']) && is_string($result['error']) ? trim($result['error']) : '';
+
+            $logService = new BrevoLogService($db, $conf);
+            $logService->record('GET', '/v3/account', $httpCode, $duration, $success, $errorMessage);
+
+            if ($success) {
+                dolibarr_set_const($db, 'BREVO_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
+                $conf->global->BREVO_APIKEY = $apiKey;
+                setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+            } else {
+                $displayMessage = $errorMessage !== '' ? $errorMessage : $langs->trans('BrevoConnectionFail');
+                setEventMessages($langs->trans('BrevoApiKeyValidationFailed', $displayMessage, $httpCode, $duration), null, 'errors');
+            }
         }
 
         $action = '';
