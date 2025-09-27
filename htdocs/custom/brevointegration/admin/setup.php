@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @brief     Administration page to configure Brevo API key.
  */
 
-require '../../../main.inc.php';
+require __DIR__.'/../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
@@ -203,30 +203,34 @@ if ($action === 'setapikey') {
     if (!checkToken()) {
         accessforbidden();
     }
-
-    $apiKey = trim(GETPOST('BREVOINTEGRATION_APIKEY', 'restricthtml'));
-    if ($apiKey === '') {
-        dolibarr_del_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $conf->entity);
-        setEventMessages($langs->trans('BrevoApiKeyRemoved'), null, 'mesgs');
-    } else {
-        $api = new BrevoApi($db, $conf, $apiKey);
-        $response = $api->validateApiKey($apiKey);
-        if (!empty($response['success'])) {
-            dolibarr_set_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
-            setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+    try {
+        $apiKey = trim(GETPOST('BREVOINTEGRATION_APIKEY', 'restricthtml'));
+        if ($apiKey === '') {
+            dolibarr_del_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $conf->entity);
+            setEventMessages($langs->trans('BrevoApiKeyRemoved'), null, 'mesgs');
         } else {
-            $errorMessage = isset($response['error']) ? (string) $response['error'] : '';
-            if ($errorMessage === 'Missing PHP cURL extension') {
-                $errorMessage = $langs->trans('BrevoMissingCurlExtension');
+            $api = new BrevoApi($db, $conf, $apiKey);
+            $response = $api->validateApiKey($apiKey);
+            if (!empty($response['success'])) {
+                dolibarr_set_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
+                setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+            } else {
+                $errorMessage = isset($response['error']) ? (string) $response['error'] : '';
+                if ($errorMessage === 'Missing PHP cURL extension') {
+                    $errorMessage = $langs->trans('BrevoMissingCurlExtension');
+                }
+                if ($errorMessage === 'Missing PHP JSON extension') {
+                    $errorMessage = $langs->trans('BrevoMissingJsonExtension');
+                }
+                if ($errorMessage === '') {
+                    $errorMessage = $langs->trans('Error');
+                }
+                setEventMessages($errorMessage, null, 'errors');
             }
-            if ($errorMessage === 'Missing PHP JSON extension') {
-                $errorMessage = $langs->trans('BrevoMissingJsonExtension');
-            }
-            if ($errorMessage === '') {
-                $errorMessage = $langs->trans('Error');
-            }
-            setEventMessages($errorMessage, null, 'errors');
         }
+    } catch (Throwable $exception) {
+        dol_syslog(__FILE__.'::setapikey '.$exception->getMessage(), LOG_ERR);
+        setEventMessages($langs->trans('BrevoApiKeyUnexpectedError'), null, 'errors');
     }
 } elseif ($action === 'savefieldmapping') {
     if (!checkToken()) {

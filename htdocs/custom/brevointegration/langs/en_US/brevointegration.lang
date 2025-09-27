@@ -67,6 +67,7 @@ BrevoDiagnosticIconFile=Module icon file
 BrevoApiKeyLabel=Brevo API key
 BrevoApiKeySaved=API key validated and saved.
 BrevoApiKeyRemoved=API key removed.
+BrevoApiKeyUnexpectedError=An unexpected error occurred while saving the API key. Check the Dolibarr logs for details.
 BrevoMissingCurlExtension=The PHP cURL extension is required to validate the API key. Enable php-curl on your server.
 BrevoMissingJsonExtension=The PHP JSON extension is required to validate the API key. Enable php-json on your server.
 BrevoMissingApiKey=Please provide a valid Brevo API key.
