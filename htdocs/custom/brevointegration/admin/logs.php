@@ -14,9 +14,6 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
-if (!class_exists('BrevoLogService')) {
-    require_once __DIR__.'/../class/services/brevologservice.class.php';
-}
 
 /**
  * Build a timestamp using Dolibarr helper when available, otherwise fallback to PHP's mktime.
@@ -198,7 +195,7 @@ if (empty($logs)) {
         print '<td class="right">'.dol_escape_htmltag((string) $log['http_code']).'</td>';
         $durationLabel = sprintf($langs->trans('BrevoLogsDurationUnit'), (int) $log['duration_ms']);
         print '<td class="right">'.dol_escape_htmltag($durationLabel).'</td>';
-        $message = $log['message'] !== '' ? dol_escape_htmltag($log['message']) : '&nbsp;';
+        $message = !empty($log['message']) ? dol_escape_htmltag($log['message']) : '&nbsp;';
         print '<td>'.$message.'</td>';
         print '</tr>';
     }
