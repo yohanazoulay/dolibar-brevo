@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.3.3] - 2025-10-05
+### Added
+- Checklist de diagnostic complète sur l'onglet d'administration avec vérification des extensions PHP, de la base de données et de la configuration Brevo pour expliquer les erreurs 500.
+
 ## [1.3.2] - 2025-10-03
 ### Fixed
 - Empêche l'erreur fatale lors de la validation de la clé API lorsque l'extension PHP cURL est absente et affiche un message explicite.
