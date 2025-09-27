@@ -1,0 +1,26 @@
+# Brevo module French translations
+Brevo=Brevo
+BrevoLists=Listes Brevo
+BrevoSetupTitle=Configuration de Brevo
+BrevoApiKeyLabel=Clé API Brevo
+BrevoApiKeySaved=Clé API validée et enregistrée.
+BrevoApiKeyRemoved=Clé API supprimée.
+BrevoMissingApiKey=Veuillez renseigner une clé API Brevo valide.
+BrevoMissingEmail=Le contact ne possède pas d'adresse e-mail.
+BrevoSelectList=Veuillez sélectionner une liste Brevo.
+BrevoSyncSuccess=Le contact a été synchronisé avec Brevo.
+BrevoRemovalSuccess=Le contact a été retiré de la liste Brevo.
+BrevoIntegrationTitle=Intégration Brevo
+BrevoNoListFound=Aucune liste Brevo disponible.
+BrevoSelectListLabel=Liste cible
+BrevoPushButton=Pousser vers Brevo
+BrevoCurrentSubscriptions=Abonnements Brevo
+BrevoListId=ID Liste
+BrevoStatus=Statut
+BrevoStatusOk=Actif
+BrevoStatusRemoved=Supprimé
+BrevoRemoveButton=Retirer de Brevo
+BrevoAlreadyRemoved=Déjà retiré
+BrevoNoSyncHistory=Aucune synchronisation enregistrée.
+BrevoListsTitle=Listes de contacts Brevo
+BrevoTotalContacts=Contacts inscrits
