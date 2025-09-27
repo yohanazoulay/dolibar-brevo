@@ -8,8 +8,33 @@ declare(strict_types=1);
  * @brief     Administration page to inspect Brevo API logs.
  */
 
-// --- Deterministic loader (more reliable on SaaS/proxied setups)
-require __DIR__.'/../../../main.inc.php';
+// --- Deterministic loader compatible with module installed in htdocs/ or htdocs/custom/
+if (!defined('DOL_DOCUMENT_ROOT')) {
+    $mainIncludeFound = false;
+    $includeCandidates = array(
+        __DIR__.'/../../main.inc.php',
+        __DIR__.'/../../master.inc.php',
+        __DIR__.'/../../../main.inc.php',
+        __DIR__.'/../../../master.inc.php',
+    );
+
+    foreach ($includeCandidates as $includeCandidate) {
+        if (!is_file($includeCandidate)) {
+            continue;
+        }
+
+        require_once $includeCandidate;
+
+        if (defined('DOL_DOCUMENT_ROOT')) {
+            $mainIncludeFound = true;
+            break;
+        }
+    }
+
+    if (!$mainIncludeFound) {
+        throw new RuntimeException('Unable to load Dolibarr main include file.');
+    }
+}
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
