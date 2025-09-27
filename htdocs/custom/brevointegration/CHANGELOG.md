@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.15] - 2025-10-17
+### Fixed
+- Empêche l'enregistrement d'une clé API Brevo invalide en vérifiant la connexion avant de sauvegarder et en journalisant l'appel.
+- Clarifie le message d'échec du test de connexion avec la cause détaillée et le code HTTP.
+
 ## [1.3.14] - 2025-10-16
 ### Fixed
 - Restaure la constante `MAIN_MODULE_BREVOINTEGRATION` dans le descripteur afin de permettre la désactivation du module depuis l'administration Dolibarr.
