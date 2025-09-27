@@ -128,7 +128,7 @@
 - **Solutions déjà testées** :
   - Tentative 1 : S'appuyer uniquement sur `dol_syslog()` pour les erreurs SQL.
     - Résultat : Aucune trace lorsque PHP plante avant la journalisation centrale.
-- **Solution retenue / correctif appliqué** : Création d'un logger dédié `brevo_admin.log` avec enregistrement systématique des requêtes et encapsulation de la page dans un `try/catch` pour afficher un message contrôlé.
+- **Solution retenue / correctif appliqué** : Création d'un logger dédié `brevo_admin.log` avec enregistrement systématique des requêtes, instrumentation complète du cycle de vie (démarrage, SQL, nombre de lignes, statut final) et encapsulation de la page dans un `try/catch`/`finally` pour afficher un message contrôlé (« Erreur SQL » ou « Erreur interne ») sans 500 silencieux.
 - **Statut actuel** : corrigé
 
 ### BUG-2025-10-16-DISABLE-CONST

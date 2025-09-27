@@ -55,17 +55,26 @@ $httpContext = array(
     'remote_ip' => isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown',
 );
 
-brevointegration_logger_info('logs.php bootstrap', $httpContext + array(
-    'user_id' => isset($user->id) ? (int) $user->id : 0,
+$currentUserId = isset($user->id) ? (int) $user->id : 0;
+$currentUserLogin = isset($user->login) ? (string) $user->login : '';
+
+$startContext = $httpContext + array(
+    'user_id' => $currentUserId,
+    'user_login' => $currentUserLogin,
     'query' => isset($_GET) && is_array($_GET) ? $_GET : array(),
-));
+);
+
+brevointegration_logger_info('logs.php started by user='.($currentUserLogin !== '' ? $currentUserLogin : (string) $currentUserId), $startContext);
 
 if (!$user->admin) {
-    brevointegration_logger_error('logs.php forbidden access', $httpContext + array('user_id' => isset($user->id) ? (int) $user->id : 0));
+    brevointegration_logger_error('logs.php forbidden access', $httpContext + array('user_id' => $currentUserId, 'user_login' => $currentUserLogin));
     accessforbidden();
 }
 
 $layoutStarted = false;
+$pageStatus = 'success';
+$logsFetched = 0;
+$selfUrl = isset($_SERVER['PHP_SELF']) ? (string) $_SERVER['PHP_SELF'] : '';
 
 try {
     $langs->load('admin');
@@ -143,7 +152,6 @@ try {
     $logs = array();
     $total = 0;
     $param = '';
-    $selfUrl = isset($_SERVER['PHP_SELF']) ? (string) $_SERVER['PHP_SELF'] : '';
 
     if ($startTimestamp) {
         $param .= '&filter_startday='.date('d', $startTimestamp);
@@ -194,13 +202,14 @@ try {
         $whereClause = implode(' AND ', $conditions);
 
         $countSql = 'SELECT COUNT(*) as total FROM '.MAIN_DB_PREFIX.'brevo_log WHERE '.$whereClause;
-        brevointegration_logger_debug('logs.php count query', $httpContext + array('sql' => $countSql, 'self' => $selfUrl));
+        brevointegration_logger_info('Executing SQL (count)', $httpContext + array('sql' => $countSql, 'self' => $selfUrl));
         $resCount = $db->query($countSql);
         if ($resCount === false) {
             $errorMessage = $db->lasterror();
+            $pageStatus = 'sql_error';
             brevointegration_logger_error('logs.php count query failed', $httpContext + array('sql' => $countSql, 'error' => $errorMessage, 'self' => $selfUrl));
             dol_syslog(__FILE__.'::count_logs '.$errorMessage, LOG_ERR);
-            setEventMessages($langs->trans('ErrorInternalError'), null, 'errors');
+            setEventMessages($langs->trans('ErrorSQL'), null, 'errors');
         } else {
             $countObj = $db->fetch_object($resCount);
             $total = $countObj ? (int) $countObj->total : 0;
@@ -208,18 +217,21 @@ try {
                 $db->free($resCount);
             }
 
+            brevointegration_logger_info('logs.php count query fetched total', $httpContext + array('total' => $total, 'self' => $selfUrl));
+
             $sql = 'SELECT rowid, date_event, method, endpoint, http_code, duration_ms, success, message FROM '.MAIN_DB_PREFIX.'brevo_log';
             $sql .= ' WHERE '.$whereClause;
             $sql .= ' ORDER BY '.$allowedSortfields[$sortfield].' '.$sortorder;
             $sql .= $db->plimit($limit, $offset);
 
-            brevointegration_logger_debug('logs.php select query', $httpContext + array('sql' => $sql, 'limit' => $limit, 'offset' => $offset, 'self' => $selfUrl));
+            brevointegration_logger_info('Executing SQL (select)', $httpContext + array('sql' => $sql, 'limit' => $limit, 'offset' => $offset, 'self' => $selfUrl));
             $resql = $db->query($sql);
             if ($resql === false) {
                 $errorMessage = $db->lasterror();
+                $pageStatus = 'sql_error';
                 brevointegration_logger_error('logs.php select query failed', $httpContext + array('sql' => $sql, 'error' => $errorMessage, 'self' => $selfUrl));
                 dol_syslog(__FILE__.'::select_logs '.$errorMessage, LOG_ERR);
-                setEventMessages($langs->trans('ErrorInternalError'), null, 'errors');
+                setEventMessages($langs->trans('ErrorSQL'), null, 'errors');
             } else {
                 while ($obj = $db->fetch_object($resql)) {
                     $logs[] = array(
@@ -236,6 +248,9 @@ try {
                 if (method_exists($db, 'free')) {
                     $db->free($resql);
                 }
+
+                $logsFetched = count($logs);
+                brevointegration_logger_info('logs.php select query fetched rows', $httpContext + array('fetched' => $logsFetched, 'self' => $selfUrl));
             }
         }
     }
@@ -337,11 +352,10 @@ try {
 
     llxFooter();
     $layoutStarted = false;
-    $db->close();
 
-    brevointegration_logger_info('logs.php completed', $httpContext + array('status' => 'success', 'total' => $total, 'displayed' => count($logs), 'self' => $selfUrl));
 } catch (Throwable $exception) {
-    brevointegration_logger_error('logs.php fatal exception', $httpContext + array('exception' => $exception, 'self' => isset($selfUrl) ? $selfUrl : ''));
+    $pageStatus = 'exception';
+    brevointegration_logger_error('logs.php fatal exception', $httpContext + array('exception' => $exception, 'self' => $selfUrl));
 
     if (!$layoutStarted) {
         llxHeader('', $langs->trans('BrevoLogsTitle'));
@@ -356,8 +370,20 @@ try {
     if ($layoutStarted) {
         llxFooter();
     }
-
+} finally {
     if (isset($db) && method_exists($db, 'close')) {
         $db->close();
     }
+
+    brevointegration_logger_info(
+        $pageStatus === 'success' ? 'logs.php finished normally' : 'logs.php finished with status='.$pageStatus,
+        $httpContext + array(
+            'status' => $pageStatus,
+            'total' => isset($total) ? (int) $total : 0,
+            'displayed' => $logsFetched,
+            'self' => $selfUrl,
+            'user_id' => $currentUserId,
+            'user_login' => $currentUserLogin,
+        )
+    );
 }
