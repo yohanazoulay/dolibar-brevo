@@ -373,4 +373,60 @@ class BrevoLogServiceTest extends TestCase
 
         $this->assertCount(0, $db->data);
     }
+
+    public function testGetLogStorageStatusNormalizesMissingColumns(): void
+    {
+        $db = new FakeBrevoLogDB();
+        $conf = new stdClass();
+        $conf->entity = 1;
+
+        $service = new BrevoLogService($db, $conf);
+
+        $reflection = new ReflectionClass($service);
+        $property = $reflection->getProperty('maintenanceService');
+        $property->setAccessible(true);
+        $property->setValue($service, new class($db) {
+            /** @var FakeBrevoLogDB */
+            private $db;
+
+            public function __construct($db)
+            {
+                $this->db = $db;
+            }
+
+            public function getLogTableStatus()
+            {
+                return array(
+                    'table_name' => 'llx_brevo_log',
+                    'exists' => true,
+                    'ready' => true,
+                    'missing_columns' => null,
+                    'available_columns' => 'rowid'
+                );
+            }
+
+            public function getLogTableName()
+            {
+                return 'llx_brevo_log';
+            }
+
+            public function getLogTableSchema()
+            {
+                return array('exists' => true, 'fields' => array('rowid' => 'rowid'));
+            }
+        });
+
+        $status = $service->getLogStorageStatus();
+
+        $this->assertTrue($status['exists']);
+        $this->assertTrue($status['ready']);
+        $this->assertSame(array(), $status['missing_columns']);
+        $this->assertSame(array('rowid'), $status['available_columns']);
+
+        $schemaProperty = $reflection->getProperty('logTableSchema');
+        $schemaProperty->setAccessible(true);
+        $schema = $schemaProperty->getValue($service);
+
+        $this->assertSame(array('exists' => true, 'fields' => array('rowid' => 'rowid')), $schema);
+    }
 }

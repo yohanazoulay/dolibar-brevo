@@ -139,8 +139,16 @@ if ($limit) {
 if (!$storageStatus['exists']) {
     setEventMessages($langs->trans('BrevoLogsStorageMissingTable', dol_escape_htmltag($storageStatus['table_name'])), null, 'warnings');
 } elseif (!$storageStatus['ready']) {
-    $missingColumns = array_map('dol_escape_htmltag', $storageStatus['missing_columns']);
-    $missingList = implode(', ', $missingColumns);
+    $missingColumns = array();
+    if (!empty($storageStatus['missing_columns'])) {
+        if (is_array($storageStatus['missing_columns'])) {
+            $missingColumns = array_map('dol_escape_htmltag', $storageStatus['missing_columns']);
+        } else {
+            dol_syslog(__FILE__.' unexpected missing_columns payload type: '.gettype($storageStatus['missing_columns']), LOG_ERR);
+            $missingColumns = array(dol_escape_htmltag((string) $storageStatus['missing_columns']));
+        }
+    }
+    $missingList = !empty($missingColumns) ? implode(', ', $missingColumns) : dol_escape_htmltag($langs->trans('Unknown'));
     setEventMessages($langs->trans('BrevoLogsStorageMissingColumns', $missingList), null, 'warnings');
 } else {
     $conditions = array('entity = '.((int) $conf->entity));

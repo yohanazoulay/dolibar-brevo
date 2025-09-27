@@ -245,11 +245,70 @@ class BrevoLogService
      */
     public function getLogStorageStatus()
     {
-        $status = $this->maintenanceService->getLogTableStatus();
+        $defaultStatus = array(
+            'table_name' => $this->maintenanceService->getLogTableName(),
+            'exists' => false,
+            'ready' => false,
+            'missing_columns' => array(),
+            'available_columns' => array()
+        );
+
+        try {
+            $status = $this->maintenanceService->getLogTableStatus();
+        } catch (Throwable $exception) {
+            dol_syslog(__METHOD__.' unexpected exception: '.$exception->getMessage(), LOG_ERR);
+            $status = $defaultStatus;
+        }
+
+        if (!is_array($status)) {
+            dol_syslog(__METHOD__.' invalid status payload type: '.gettype($status), LOG_ERR);
+            $status = $defaultStatus;
+        } else {
+            $status = array_merge($defaultStatus, $status);
+        }
+
+        $status['exists'] = !empty($status['exists']);
+        $status['missing_columns'] = $this->sanitizeColumnList($status['missing_columns'], 'missing_columns');
+        $status['available_columns'] = $this->sanitizeColumnList($status['available_columns'], 'available_columns');
+        $status['ready'] = $status['exists'] && empty($status['missing_columns']);
+
         $fields = !empty($status['available_columns']) ? $this->normalizeFieldMap($status['available_columns']) : array();
         $this->logTableSchema = array('exists' => $status['exists'], 'fields' => $fields);
 
         return $status;
+    }
+
+    /**
+     * Normalise arbitrary payloads into a list of column names.
+     *
+     * @param mixed  $value   Raw payload
+     * @param string $context Context identifier for logging
+     * @return array<int,string>
+     */
+    private function sanitizeColumnList($value, $context)
+    {
+        if (is_array($value)) {
+            $columns = array();
+            foreach ($value as $column) {
+                if ($column === null || $column === '') {
+                    continue;
+                }
+
+                $columns[] = (string) $column;
+            }
+
+            return $columns;
+        }
+
+        if ($value === null || $value === '') {
+            dol_syslog(__METHOD__.' unexpected empty '.$context.' payload', LOG_WARNING);
+
+            return array();
+        }
+
+        dol_syslog(__METHOD__.' unexpected '.$context.' payload type: '.gettype($value), LOG_WARNING);
+
+        return array((string) $value);
     }
 
     /**
