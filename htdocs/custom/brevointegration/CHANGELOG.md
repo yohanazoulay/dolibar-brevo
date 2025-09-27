@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.6] - 2025-10-08
+### Fixed
+- Empêche l'erreur fatale lors de la validation de la clé API lorsque l'extension PHP JSON est absente et affiche un message explicite.
+- Ajout d'un test unitaire garantissant le retour de l'erreur "Missing PHP JSON extension" et traduction associée.
+
 ## [1.3.5] - 2025-10-07
 ### Fixed
 - Empêche les erreurs 500 lors de l'enregistrement de la clé API Brevo en encapsulant les appels HTTP dans une gestion d'exceptions robuste.

@@ -68,6 +68,7 @@ BrevoApiKeyLabel=Brevo API key
 BrevoApiKeySaved=API key validated and saved.
 BrevoApiKeyRemoved=API key removed.
 BrevoMissingCurlExtension=The PHP cURL extension is required to validate the API key. Enable php-curl on your server.
+BrevoMissingJsonExtension=The PHP JSON extension is required to validate the API key. Enable php-json on your server.
 BrevoMissingApiKey=Please provide a valid Brevo API key.
 BrevoMissingEmail=The contact has no email address.
 BrevoSelectList=Please choose a Brevo list.
