@@ -74,3 +74,17 @@
     - Résultat : fonction `checkToken()` absente → erreur fatale.
 - **Solution retenue / correctif appliqué** : Charger explicitement `core/lib/security.lib.php` dans la page de configuration et les hooks pour garantir la disponibilité de `checkToken()`.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-13-LOGS-MISSINGCOLS
+- **ID du bug** : BUG-2025-10-13-LOGS-MISSINGCOLS
+- **Description** : Erreur 500 sur `custom/brevointegration/admin/logs.php` lorsque `BrevoDatabaseMaintenanceService` retourne une liste de colonnes manquantes `null`, provoquant un `TypeError` sans trace dans `dolibarr.log`.
+- **Date de détection** : 2025-10-13
+- **Étapes pour reproduire** :
+  1. Forcer un retour incohérent de `getLogTableStatus()` (ex. hook tiers ou ancien cache retournant `missing_columns = null`).
+  2. Ouvrir `custom/brevointegration/admin/logs.php`.
+  3. Constater l'erreur 500 et l'absence de journalisation.
+- **Solutions déjà testées** :
+  - Tentative 1 : Aucun traitement spécifique, laisser PHP remonter l'exception `TypeError`.
+    - Résultat : Erreur 500 persistante sans trace exploitable.
+- **Solution retenue / correctif appliqué** : Normalisation défensive des métadonnées de schéma dans `BrevoLogService`, conversion des colonnes en tableau typé et ajout d'une journalisation explicite côté interface admin.
+- **Statut actuel** : corrigé

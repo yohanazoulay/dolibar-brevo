@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.11] - 2025-10-13
+### Fixed
+- Normalisation défensive du statut de la table `llx_brevo_log` pour éviter l'erreur 500 lorsque la liste des colonnes manquantes est invalide.
+- Journalisation explicite des anomalies de schéma sur la page des journaux afin de laisser des traces exploitables dans `dolibarr.log`.
+
 ## [1.3.10] - 2025-10-12
 ### Fixed
 - Ajout explicite du chargement de `security.lib.php` pour rétablir la fonction `checkToken()` sur la page de configuration Brevo et dans les hooks.
