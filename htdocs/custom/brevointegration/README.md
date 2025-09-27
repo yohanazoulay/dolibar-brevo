@@ -6,6 +6,43 @@
 2. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
 3. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer la table de synchronisation si nécessaire.
 
+## Arborescence du module
+
+Le zip distribué doit contenir **un unique dossier racine** `brevointegration/` avec les répertoires standards Dolibarr ci-dessous :
+
+```
+brevointegration/
+├── admin/
+│   └── setup.php
+├── class/
+│   ├── actions_brevointegration.class.php
+│   ├── brevoapi.class.php
+│   └── brevosync.class.php
+├── core/
+│   └── modules/
+│       └── modBrevoIntegration.class.php
+├── langs/
+│   ├── en_US/
+│   │   └── brevointegration.lang
+│   └── fr_FR/
+│       └── brevointegration.lang
+├── sql/
+│   └── llx_brevo_contactsync.sql
+├── tests/
+│   ├── bootstrap.php
+│   ├── phpunit.xml.dist
+│   └── unit/
+│       ├── BrevoApiTest.php
+│       └── BrevoSyncTest.php
+├── tpl/
+│   └── contact_brevointegration.tpl.php
+├── CHANGELOG.md
+├── README.md
+└── lists.php
+```
+
+Cette structure garantit la compatibilité avec l'assistant « Déployer module externe » de Dolibarr et évite les erreurs de copie lors de l'installation.
+
 ## Configuration
 
 1. Rendez-vous dans **Configuration > Modules/Applications > Brevo > Paramètres**.
