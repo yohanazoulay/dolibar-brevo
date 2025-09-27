@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] - 2024-05-26
+### Fixed
+- Correction de l'arborescence du package pour respecter le standard Dolibarr (suppression du sous-répertoire redondant).
+- Mise à jour du guide d'arborescence dans la documentation utilisateur.
+
 ## [1.0.1] - 2024-05-25
 ### Changed
 - Renommage du module en **Brevo Integration** avec mise à jour des chemins Dolibarr et des constantes de configuration.
