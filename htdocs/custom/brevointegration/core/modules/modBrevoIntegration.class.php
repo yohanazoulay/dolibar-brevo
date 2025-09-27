@@ -39,7 +39,10 @@ class modBrevoIntegration extends DolibarrModules
 
         $this->dirs = array();
 
-        $this->config_page_url = array('setup.php@brevointegration', 'logs.php@brevointegration');
+        $this->config_page_url = array(
+            'setup.php@brevointegration',
+            '../custom/brevointegration/admin/logs.php' // direct path so SaaS hosting resolves the custom admin page correctly
+        );
         $this->langfiles = array('brevointegration@brevointegration');
 
         $this->module_parts = array(
