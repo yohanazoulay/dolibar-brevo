@@ -51,6 +51,38 @@ $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php">'.$langs->trans('BackT
 print load_fiche_titre($langs->trans('BrevoSetupTitle'), $linkback, 'brevointegration@brevointegration');
 
 $token = newToken();
+$supportInfo = sprintf(
+    $langs->trans('BrevoModuleSupportInfo'),
+    '<a href="https://meditrust.io" target="_blank" rel="noopener noreferrer">',
+    '</a>',
+    '<a href="mailto:yohan@meditrust.io">yohan@meditrust.io</a>'
+);
+
+print '<div class="opacitymedium mtoponly">'.$supportInfo.'</div>';
+print '<div class="fichecenter">';
+print '    <div class="fichehalfleft">';
+print '        <div class="box">';
+print '            <h3>'.$langs->trans('BrevoModuleGuideTitle').'</h3>';
+print '            <p>'.$langs->trans('BrevoModuleGuideIntro').'</p>';
+print '            <ol>';
+print '                <li>'.$langs->trans('BrevoModuleGuideStep1').'</li>';
+print '                <li>'.$langs->trans('BrevoModuleGuideStep2').'</li>';
+print '                <li>'.$langs->trans('BrevoModuleGuideStep3').'</li>';
+print '            </ol>';
+print '        </div>';
+print '    </div>';
+print '    <div class="fichehalfright">';
+print '        <div class="box">';
+print '            <h3>'.$langs->trans('BrevoModuleGuideBenefitsTitle').'</h3>';
+print '            <ul>';
+print '                <li>'.$langs->trans('BrevoModuleGuideBenefit1').'</li>';
+print '                <li>'.$langs->trans('BrevoModuleGuideBenefit2').'</li>';
+print '                <li>'.$langs->trans('BrevoModuleGuideBenefit3').'</li>';
+print '            </ul>';
+print '        </div>';
+print '    </div>';
+print '    <div class="clearboth"></div>';
+print '</div>';
 ?>
 <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
     <input type="hidden" name="token" value="<?php echo $token; ?>" />
