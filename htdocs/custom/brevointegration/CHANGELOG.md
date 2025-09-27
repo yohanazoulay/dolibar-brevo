@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.2.3] - 2025-09-27
+### Fixed
+- Fallback vers `mktime` lorsque `dol_mktime` n'est pas disponible afin d'éviter l'erreur fatale sur la page des journaux.
+
 ## [1.2.2] - 2025-09-27
 ### Changed
 - Utilisation du picto Brevo dédié pour le module et ses menus Dolibarr.
