@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.2.5] - 2025-09-29
+### Added
+- Onglet de diagnostic sur la page de configuration affichant la version actuelle du module.
+
 ## [1.2.4] - 2025-09-28
 ### Fixed
 - Suppression du repli d'inclusion redondant sur la page des journaux pour éviter les erreurs fatales en environnement SaaS.
