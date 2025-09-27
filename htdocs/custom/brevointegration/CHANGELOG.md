@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.2.6] - 2025-09-30
+### Fixed
+- Renforcement du chargement de `main.inc.php` sur la page des journaux pour supporter les hébergements SaaS Dolibarr.
+
 ## [1.2.5] - 2025-09-29
 ### Added
 - Onglet de diagnostic sur la page de configuration affichant la version actuelle du module.
