@@ -8,7 +8,32 @@ declare(strict_types=1);
  * @brief     Page to display Brevo contact lists.
  */
 
-require __DIR__.'/../../main.inc.php';
+if (!defined('DOL_DOCUMENT_ROOT')) {
+    $mainIncludeFound = false;
+    $includeCandidates = array(
+        __DIR__.'/../main.inc.php',
+        __DIR__.'/../master.inc.php',
+        __DIR__.'/../../main.inc.php',
+        __DIR__.'/../../master.inc.php',
+    );
+
+    foreach ($includeCandidates as $includeCandidate) {
+        if (!is_file($includeCandidate)) {
+            continue;
+        }
+
+        require_once $includeCandidate;
+
+        if (defined('DOL_DOCUMENT_ROOT')) {
+            $mainIncludeFound = true;
+            break;
+        }
+    }
+
+    if (!$mainIncludeFound) {
+        throw new RuntimeException('Unable to load Dolibarr main include file.');
+    }
+}
 
 dol_include_once('/brevointegration/class/BrevoClient.class.php');
 

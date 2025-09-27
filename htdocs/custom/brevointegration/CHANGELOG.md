@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.3.18] - 2025-10-20
+### Changed
+- Harmonisation du chargement de l'environnement Dolibarr pour supporter les installations du module en racine ou dans `htdocs/custom`.
+
 ## [1.3.17] - 2025-10-19
 ### Changed
 - Ajout d'une journalisation chronologique détaillée sur `admin/logs.php` (démarrage, exécution des requêtes SQL, nombre de lignes récupérées, clôture) dans le fichier `brevo_admin.log`.
