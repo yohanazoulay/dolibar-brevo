@@ -17,6 +17,7 @@ dol_include_once('/brevointegration/class/BrevoClient.class.php');
 dol_include_once('/brevointegration/class/brevosync.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
+dol_include_once('/brevointegration/lib/brevointegration_security.lib.php');
 
 /**
  * Class ActionsBrevointegration
@@ -63,7 +64,7 @@ class ActionsBrevointegration
             return 0;
         }
 
-        if (!checkToken()) {
+        if (!brevointegration_check_token()) {
             setEventMessages($langs->trans('ErrorBadToken'), null, 'errors');
             return -1;
         }

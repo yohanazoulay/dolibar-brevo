@@ -102,3 +102,17 @@
     - Résultat : Marche seulement lorsque `idate()` n'est pas disponible.
 - **Solution retenue / correctif appliqué** : Ajout du helper `brevointegration_format_sql_datetime()` forçant les quotes si nécessaire et utilisation systématique dans `BrevoLogService`, `BrevoLog`, `BrevoSync` et `admin/logs.php`.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-15-CSRF-FALLBACK
+- **ID du bug** : BUG-2025-10-15-CSRF-FALLBACK
+- **Description** : Environnements mutualisés ne chargeant pas `functions.lib.php` / `security.lib.php` provoquant toujours l'erreur fatale « Call to undefined function checkToken() » sur `admin/setup.php` et les hooks Brevo, empêchant la sauvegarde de la clé API et la désactivation du module.
+- **Date de détection** : 2025-10-15
+- **Étapes pour reproduire** :
+  1. Déployer Dolibarr avec un loader restreint ne fournissant pas `checkToken()` / `newToken()` au module.
+  2. Ouvrir `custom/brevointegration/admin/setup.php` et soumettre un formulaire ou utiliser les boutons Brevo sur une fiche contact.
+  3. Constater l'erreur HTTP 500 et la trace « Call to undefined function checkToken() » dans `dolibarr.log`.
+- **Solutions déjà testées** :
+  - Tentative 1 : Charger directement `security.lib.php` depuis la page d'administration.
+    - Résultat : Toujours en échec lorsque l'hébergeur bloque l'inclusion (fichier absent ou chemin filtré).
+- **Solution retenue / correctif appliqué** : Création d'un helper `brevointegration_security.lib.php` qui tente de charger les bibliothèques natives et fournit un repli CSRF contrôlé (journalisation + génération/validation locale) pour éviter l'erreur 500.
+- **Statut actuel** : corrigé

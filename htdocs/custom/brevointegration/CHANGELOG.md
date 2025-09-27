@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.3.13] - 2025-10-15
+### Fixed
+- Ajout d'un helper de sécurité dédié pour charger automatiquement les bibliothèques Dolibarr et fournir un repli CSRF afin d'éviter l'erreur fatale « Call to undefined function checkToken() ».
+- Sécurisation des formulaires d'administration et des hooks Brevo en utilisant le nouveau helper `brevointegration_check_token()` et des jetons générés de manière résiliente.
+- Prévention d'un blocage de l'interface Dolibarr (désactivation du module, sauvegarde de clé ou consultation des journaux) lorsque les fonctions de jeton natives sont indisponibles.
+
 ## [1.3.12] - 2025-10-14
 ### Fixed
 - Encadrement systématique des dates SQL via un helper dédié pour éviter les erreurs de syntaxe lorsque `DoliDB::idate()` ne renvoie pas de quotes (MySQL/MariaDB).

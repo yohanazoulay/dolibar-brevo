@@ -16,6 +16,9 @@ dol_include_once('/brevointegration/class/services/brevofieldmappingservice.clas
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
 dol_include_once('/brevointegration/class/services/brevodatabasemaintenanceservice.class.php');
+dol_include_once('/brevointegration/lib/brevointegration_security.lib.php');
+
+brevointegration_require_security_libs();
 
 global $langs, $user, $conf, $db;
 
@@ -201,7 +204,7 @@ if (!in_array($selectedTab, $availableTabs, true)) {
 
 try {
     if ($action === 'saveapikey') {
-        if (!checkToken()) {
+        if (!brevointegration_check_token()) {
             accessforbidden();
         }
 
@@ -218,7 +221,7 @@ try {
 
         $action = '';
     } elseif ($action === 'testapikey') {
-        if (!checkToken()) {
+        if (!brevointegration_check_token()) {
             accessforbidden();
         }
 
@@ -254,7 +257,7 @@ try {
 }
 
 if ($action === 'savefieldmapping') {
-    if (!checkToken()) {
+    if (!brevointegration_check_token()) {
         accessforbidden();
     }
 
@@ -269,7 +272,7 @@ if ($action === 'savefieldmapping') {
         setEventMessages($langs->trans('BrevoFieldMappingSaveError'), null, 'errors');
     }
 } elseif ($action === 'savecategorymapping') {
-    if (!checkToken()) {
+    if (!brevointegration_check_token()) {
         accessforbidden();
     }
 
@@ -280,7 +283,7 @@ if ($action === 'savefieldmapping') {
         setEventMessages($langs->trans('BrevoCategoryMappingSaveError'), null, 'errors');
     }
 } elseif ($action === 'generatepatch') {
-    if (!checkToken()) {
+    if (!brevointegration_check_token()) {
         accessforbidden();
     }
 
@@ -312,10 +315,10 @@ $head[] = array($baseUrl.'?tab=diagnostic', $langs->trans('BrevoSetupTabDiagnost
 dol_fiche_head($head, $selectedTab, $langs->trans('BrevoSetupTitle'), -1, 'icon-picto-brevo.svg@brevointegration');
 
 if ($selectedTab === 'configuration') {
-    $token = newToken();
-    $testToken = newToken();
-    $mappingToken = newToken();
-    $categoryToken = newToken();
+    $token = brevointegration_new_token();
+    $testToken = brevointegration_new_token();
+    $mappingToken = brevointegration_new_token();
+    $categoryToken = brevointegration_new_token();
     $contactMapping = $mappingService->getMappingForType('contact');
     $thirdpartyMapping = $mappingService->getMappingForType('thirdparty');
     $contactMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
@@ -880,7 +883,7 @@ if ($selectedTab === 'configuration') {
 
     $patchNeeded = (!$logStatus['ready'] || !$contactStatus['ready']);
     if ($patchNeeded) {
-        $patchToken = newToken();
+        $patchToken = brevointegration_new_token();
         print '<form action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" method="post" class="mtop25">';
         print '    <input type="hidden" name="token" value="'.$patchToken.'" />';
         print '    <input type="hidden" name="action" value="generatepatch" />';

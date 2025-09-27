@@ -12,9 +12,11 @@ if (!defined('DOL_DOCUMENT_ROOT')) {
     exit;
 }
 
+dol_include_once('/brevointegration/lib/brevointegration_security.lib.php');
+
 /** @var Form $form */
 $form = isset($form) ? $form : null;
-$token = newToken();
+$token = brevointegration_new_token();
 $cardUrl = $_SERVER['PHP_SELF'];
 if (in_array('thirdpartycard', $context)) {
     $cardUrl .= '?socid='.(int) $object->id;
