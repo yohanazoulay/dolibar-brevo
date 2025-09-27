@@ -728,6 +728,80 @@ if ($selectedTab === 'configuration') {
                 'details' => $langs->trans('BrevoDiagnosticQueryOk')
             );
         }
+
+        $logCrudStatus = $logService->testLogTableWriteOperations();
+        if ($logCrudStatus['supported']) {
+            $crudDetails = array();
+            $operationsLabels = array(
+                'insert' => $langs->trans('BrevoDiagnosticCrudInsert'),
+                'update' => $langs->trans('BrevoDiagnosticCrudUpdate'),
+                'delete' => $langs->trans('BrevoDiagnosticCrudDelete'),
+            );
+            foreach ($operationsLabels as $operation => $labelText) {
+                $operationResult = isset($logCrudStatus['operations'][$operation]) ? $logCrudStatus['operations'][$operation] : array('success' => false, 'message' => '');
+                if (!empty($operationResult['success'])) {
+                    if ($operationResult['message'] !== '') {
+                        $crudDetails[] = $langs->trans('BrevoDiagnosticCrudOperationOkWithDetail', $labelText, $operationResult['message']);
+                    } else {
+                        $crudDetails[] = $langs->trans('BrevoDiagnosticCrudOperationOk', $labelText);
+                    }
+                } else {
+                    if (isset($operationResult['message']) && $operationResult['message'] === 'missing_identifier') {
+                        $message = $langs->trans('BrevoDiagnosticCrudErrorMissingIdentifier');
+                    } elseif (!empty($operationResult['message'])) {
+                        $message = $operationResult['message'];
+                    } else {
+                        $message = $langs->trans('BrevoDiagnosticCrudOperationKoUnknown');
+                    }
+                    $crudDetails[] = $langs->trans('BrevoDiagnosticCrudOperationKo', $labelText, $message);
+                }
+            }
+
+            $sections['database']['checks'][] = array(
+                'label' => $langs->trans('BrevoDiagnosticLogCrud'),
+                'status' => $logCrudStatus['success'] ? 'ok' : 'ko',
+                'details' => implode(' — ', $crudDetails)
+            );
+        } else {
+            $errorDetails = '';
+            switch ($logCrudStatus['error']) {
+                case 'db_unavailable':
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorDb');
+                    break;
+                case 'log_table_missing':
+                    $errorDetails = $langs->trans('BrevoDiagnosticTableMissing', $logStatus['table_name']);
+                    break;
+                case 'log_table_incomplete':
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorIncomplete');
+                    break;
+                case 'missing_column':
+                    $columnName = isset($logCrudStatus['error_details']) && $logCrudStatus['error_details'] !== '' ? $logCrudStatus['error_details'] : '?';
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorMissingColumn', $columnName);
+                    break;
+                case 'insert_failed':
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorInsert');
+                    break;
+                case 'update_failed':
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorUpdate');
+                    break;
+                case 'delete_failed':
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorDelete');
+                    break;
+                case 'exception':
+                    $details = isset($logCrudStatus['error_details']) ? $logCrudStatus['error_details'] : '';
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudErrorException', $details);
+                    break;
+                default:
+                    $errorDetails = $langs->trans('BrevoDiagnosticCrudSkipped');
+                    break;
+            }
+
+            $sections['database']['checks'][] = array(
+                'label' => $langs->trans('BrevoDiagnosticLogCrud'),
+                'status' => 'warning',
+                'details' => $errorDetails
+            );
+        }
     }
 
     $contactStatus = $maintenanceService->getContactSyncTableStatus();
@@ -753,6 +827,14 @@ if ($selectedTab === 'configuration') {
         'label' => $langs->trans('BrevoDiagnosticLogsPage'),
         'status' => $logsPageExists ? 'ok' : 'ko',
         'details' => $logsPageExists ? $langs->trans('BrevoDiagnosticFileExists', $logsPagePath) : $langs->trans('BrevoDiagnosticFileMissing', $logsPagePath)
+    );
+
+    $expectedMainIncPath = __DIR__.'/../../../main.inc.php';
+    $mainIncExists = is_file($expectedMainIncPath);
+    $sections['filesystem']['checks'][] = array(
+        'label' => $langs->trans('BrevoDiagnosticMainIncFile'),
+        'status' => $mainIncExists ? 'ok' : 'ko',
+        'details' => $mainIncExists ? $langs->trans('BrevoDiagnosticFileExists', $expectedMainIncPath) : $langs->trans('BrevoDiagnosticFileMissing', $expectedMainIncPath)
     );
 
     $iconPath = dol_buildpath('/brevointegration/img/icon-picto-brevo.svg', 0);

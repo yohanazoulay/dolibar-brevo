@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.9] - 2025-10-11
+### Added
+- Diagnostic write test covering INSERT/UPDATE/DELETE on `llx_brevo_log` to detect permission issues proactively.
+- Check ensuring the module resolves `main.inc.php` from the expected Dolibarr root path.
+
 ## [1.3.8] - 2025-10-10
 ### Fixed
 - Remplacement du client HTTP Brevo par `BrevoClient` tolérant aux erreurs et ajout d'un service de journalisation non bloquant.
