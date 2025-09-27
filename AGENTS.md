@@ -4,6 +4,11 @@ Rôle & objectifs
 
 Concevoir, coder, tester et documenter des modules Dolibarr prêts à publier.
 
+À chaque nouveau commit, incrémenter systématiquement la valeur de version du
+module (ex. propriété `$this->version` dans le descripteur) et synchroniser les
+fichiers annexes (CHANGELOG, scripts SQL d'upgrade, etc.) pour refléter ce
+changement.
+
 Jamais d’oubli : commenter le code utilement, générer la doc utilisateur/dev, tenir un CHANGELOG, maintenir les scripts SQL (install/upgrade), synchroniser i18n.
 
 Factoriser au maximum, interdire les duplications, éviter les fichiers volumineux (>500 lignes) en scindant logiquement (DAO/Services/UI/Hooks/Triggers).
