@@ -71,7 +71,17 @@ $langs->load('admin');
 $langs->load('brevointegration@brevointegration');
 
 $action = GETPOST('action', 'alpha');
+$selectedTab = GETPOST('tab', 'alpha');
 $mappingService = new BrevoFieldMappingService($db, $conf);
+
+if ($selectedTab === '') {
+    $selectedTab = 'configuration';
+}
+
+$availableTabs = array('configuration', 'diagnostic');
+if (!in_array($selectedTab, $availableTabs, true)) {
+    $selectedTab = 'configuration';
+}
 
 if ($action === 'setapikey') {
     if (!checkToken()) {
@@ -115,150 +125,187 @@ llxHeader('', $langs->trans('BrevoSetupTitle'), $helpUrl);
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php">'.$langs->trans('BackToModuleList').'</a>';
 print load_fiche_titre($langs->trans('BrevoSetupTitle'), $linkback, 'icon-picto-brevo.svg@brevointegration');
 
-$token = newToken();
-$mappingToken = newToken();
-$contactMapping = $mappingService->getMappingForType('contact');
-$thirdpartyMapping = $mappingService->getMappingForType('thirdparty');
-$contactMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
-$thirdpartyMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
-$contactFields = $mappingService->getAvailableFields('contact');
-$thirdpartyFields = $mappingService->getAvailableFields('thirdparty');
-$supportInfo = sprintf(
-    $langs->trans('BrevoModuleSupportInfo'),
-    '<a href="https://meditrust.io" target="_blank" rel="noopener noreferrer">',
-    '</a>',
-    '<a href="mailto:yohan@meditrust.io">yohan@meditrust.io</a>'
-);
+$baseUrl = dol_buildpath('/brevointegration/admin/setup.php', 1);
+$head = array();
+$head[] = array($baseUrl.'?tab=configuration', $langs->trans('BrevoSetupTabConfiguration'), 'configuration');
+$head[] = array($baseUrl.'?tab=diagnostic', $langs->trans('BrevoSetupTabDiagnostic'), 'diagnostic');
 
-print '<div class="opacitymedium mtoponly">'.$supportInfo.'</div>';
-print '<div class="fichecenter">';
-print '    <div class="fichehalfleft">';
-print '        <div class="box">';
-print '            <h3>'.$langs->trans('BrevoModuleGuideTitle').'</h3>';
-print '            <p>'.$langs->trans('BrevoModuleGuideIntro').'</p>';
-print '            <ol>';
-print '                <li>'.$langs->trans('BrevoModuleGuideStep1').'</li>';
-print '                <li>'.$langs->trans('BrevoModuleGuideStep2').'</li>';
-print '                <li>'.$langs->trans('BrevoModuleGuideStep3').'</li>';
-print '            </ol>';
-print '        </div>';
-print '    </div>';
-print '    <div class="fichehalfright">';
-print '        <div class="box">';
-print '            <h3>'.$langs->trans('BrevoModuleGuideBenefitsTitle').'</h3>';
-print '            <ul>';
-print '                <li>'.$langs->trans('BrevoModuleGuideBenefit1').'</li>';
-print '                <li>'.$langs->trans('BrevoModuleGuideBenefit2').'</li>';
-print '                <li>'.$langs->trans('BrevoModuleGuideBenefit3').'</li>';
-print '            </ul>';
-print '        </div>';
-print '    </div>';
-print '    <div class="clearboth"></div>';
-print '</div>';
-?>
-<form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
-    <input type="hidden" name="token" value="<?php echo $token; ?>" />
-    <input type="hidden" name="action" value="setapikey" />
-    <table class="noborder" width="100%">
-        <tr class="liste_titre">
-            <th><?php echo $langs->trans('Parameter'); ?></th>
-            <th><?php echo $langs->trans('Value'); ?></th>
-        </tr>
-        <tr>
-            <td class="fieldrequired"><?php echo $langs->trans('BrevoApiKeyLabel'); ?></td>
-            <td>
-                <input type="text" name="BREVOINTEGRATION_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : ''); ?>" />
-            </td>
-        </tr>
-    </table>
-    <div class="center">
-        <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
-    </div>
-</form>
-<h3><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingTitle')); ?></h3>
-<p class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingIntro'); ?></p>
-<form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
-    <input type="hidden" name="token" value="<?php echo $mappingToken; ?>" />
-    <input type="hidden" name="action" value="savefieldmapping" />
-    <table class="noborder" width="100%">
-        <tr class="liste_titre">
-            <th colspan="2"><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingContactTitle')); ?></th>
-        </tr>
-        <tr class="liste_titre">
-            <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingAttribute')); ?></th>
-            <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingField')); ?></th>
-        </tr>
-        <?php foreach ($contactMapping as $entry) { ?>
-            <tr class="oddeven">
+dol_fiche_head($head, $selectedTab, $langs->trans('BrevoSetupTitle'), -1, 'icon-picto-brevo.svg@brevointegration');
+
+if ($selectedTab === 'configuration') {
+    $token = newToken();
+    $mappingToken = newToken();
+    $contactMapping = $mappingService->getMappingForType('contact');
+    $thirdpartyMapping = $mappingService->getMappingForType('thirdparty');
+    $contactMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
+    $thirdpartyMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
+    $contactFields = $mappingService->getAvailableFields('contact');
+    $thirdpartyFields = $mappingService->getAvailableFields('thirdparty');
+    $supportInfo = sprintf(
+        $langs->trans('BrevoModuleSupportInfo'),
+        '<a href="https://meditrust.io" target="_blank" rel="noopener noreferrer">',
+        '</a>',
+        '<a href="mailto:yohan@meditrust.io">yohan@meditrust.io</a>'
+    );
+
+    print '<div class="opacitymedium mtoponly">'.$supportInfo.'</div>';
+    print '<div class="fichecenter">';
+    print '    <div class="fichehalfleft">';
+    print '        <div class="box">';
+    print '            <h3>'.$langs->trans('BrevoModuleGuideTitle').'</h3>';
+    print '            <p>'.$langs->trans('BrevoModuleGuideIntro').'</p>';
+    print '            <ol>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideStep1').'</li>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideStep2').'</li>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideStep3').'</li>';
+    print '            </ol>';
+    print '        </div>';
+    print '    </div>';
+    print '    <div class="fichehalfright">';
+    print '        <div class="box">';
+    print '            <h3>'.$langs->trans('BrevoModuleGuideBenefitsTitle').'</h3>';
+    print '            <ul>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideBenefit1').'</li>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideBenefit2').'</li>';
+    print '                <li>'.$langs->trans('BrevoModuleGuideBenefit3').'</li>';
+    print '            </ul>';
+    print '        </div>';
+    print '    </div>';
+    print '    <div class="clearboth"></div>';
+    print '</div>';
+    ?>
+    <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
+        <input type="hidden" name="token" value="<?php echo $token; ?>" />
+        <input type="hidden" name="action" value="setapikey" />
+        <input type="hidden" name="tab" value="configuration" />
+        <table class="noborder" width="100%">
+            <tr class="liste_titre">
+                <th><?php echo $langs->trans('Parameter'); ?></th>
+                <th><?php echo $langs->trans('Value'); ?></th>
+            </tr>
+            <tr>
+                <td class="fieldrequired"><?php echo $langs->trans('BrevoApiKeyLabel'); ?></td>
                 <td>
-                    <input type="text" name="brevo_attribute_contact[]" value="<?php echo dol_escape_htmltag($entry['attribute']); ?>" size="30" />
-                </td>
-                <td>
-                    <select name="brevo_field_contact[]">
-                        <option value=""><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingSelectField')); ?></option>
-                        <?php if (!empty($contactFields['standard'])) { ?>
-                            <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingStandardGroup')); ?>">
-                                <?php foreach ($contactFields['standard'] as $field => $label) { ?>
-                                    <?php $selected = ($entry['source'] === 'standard' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
-                                    <option value="standard:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
-                                <?php } ?>
-                            </optgroup>
-                        <?php } ?>
-                        <?php if (!empty($contactFields['extrafields'])) { ?>
-                            <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingExtraGroup')); ?>">
-                                <?php foreach ($contactFields['extrafields'] as $field => $label) { ?>
-                                    <?php $selected = ($entry['source'] === 'extrafield' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
-                                    <option value="extrafield:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
-                                <?php } ?>
-                            </optgroup>
-                        <?php } ?>
-                    </select>
+                    <input type="text" name="BREVOINTEGRATION_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : ''); ?>" />
                 </td>
             </tr>
-        <?php } ?>
-        <tr class="liste_titre">
-            <th colspan="2"><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingThirdpartyTitle')); ?></th>
-        </tr>
-        <tr class="liste_titre">
-            <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingAttribute')); ?></th>
-            <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingField')); ?></th>
-        </tr>
-        <?php foreach ($thirdpartyMapping as $entry) { ?>
-            <tr class="oddeven">
-                <td>
-                    <input type="text" name="brevo_attribute_thirdparty[]" value="<?php echo dol_escape_htmltag($entry['attribute']); ?>" size="30" />
-                </td>
-                <td>
-                    <select name="brevo_field_thirdparty[]">
-                        <option value=""><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingSelectField')); ?></option>
-                        <?php if (!empty($thirdpartyFields['standard'])) { ?>
-                            <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingStandardGroup')); ?>">
-                                <?php foreach ($thirdpartyFields['standard'] as $field => $label) { ?>
-                                    <?php $selected = ($entry['source'] === 'standard' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
-                                    <option value="standard:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
-                                <?php } ?>
-                            </optgroup>
-                        <?php } ?>
-                        <?php if (!empty($thirdpartyFields['extrafields'])) { ?>
-                            <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingExtraGroup')); ?>">
-                                <?php foreach ($thirdpartyFields['extrafields'] as $field => $label) { ?>
-                                    <?php $selected = ($entry['source'] === 'extrafield' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
-                                    <option value="extrafield:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
-                                <?php } ?>
-                            </optgroup>
-                        <?php } ?>
-                    </select>
-                </td>
+        </table>
+        <div class="center">
+            <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
+        </div>
+    </form>
+    <h3><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingTitle')); ?></h3>
+    <p class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingIntro'); ?></p>
+    <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
+        <input type="hidden" name="token" value="<?php echo $mappingToken; ?>" />
+        <input type="hidden" name="action" value="savefieldmapping" />
+        <input type="hidden" name="tab" value="configuration" />
+        <table class="noborder" width="100%">
+            <tr class="liste_titre">
+                <th colspan="2"><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingContactTitle')); ?></th>
             </tr>
-        <?php } ?>
-        <tr class="oddeven">
-            <td colspan="2" class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingAddHint'); ?></td>
-        </tr>
-    </table>
-    <div class="center">
-        <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
-    </div>
-</form>
-<?php
+            <tr class="liste_titre">
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingAttribute')); ?></th>
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingField')); ?></th>
+            </tr>
+            <?php foreach ($contactMapping as $entry) { ?>
+                <tr class="oddeven">
+                    <td>
+                        <input type="text" name="brevo_attribute_contact[]" value="<?php echo dol_escape_htmltag($entry['attribute']); ?>" size="30" />
+                    </td>
+                    <td>
+                        <select name="brevo_field_contact[]">
+                            <option value=""><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingSelectField')); ?></option>
+                            <?php if (!empty($contactFields['standard'])) { ?>
+                                <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingStandardGroup')); ?>">
+                                    <?php foreach ($contactFields['standard'] as $field => $label) { ?>
+                                        <?php $selected = ($entry['source'] === 'standard' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
+                                        <option value="standard:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
+                                    <?php } ?>
+                                </optgroup>
+                            <?php } ?>
+                            <?php if (!empty($contactFields['extrafields'])) { ?>
+                                <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingExtraGroup')); ?>">
+                                    <?php foreach ($contactFields['extrafields'] as $field => $label) { ?>
+                                        <?php $selected = ($entry['source'] === 'extrafield' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
+                                        <option value="extrafield:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
+                                    <?php } ?>
+                                </optgroup>
+                            <?php } ?>
+                        </select>
+                    </td>
+                </tr>
+            <?php } ?>
+            <tr class="liste_titre">
+                <th colspan="2"><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingThirdpartyTitle')); ?></th>
+            </tr>
+            <tr class="liste_titre">
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingAttribute')); ?></th>
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingField')); ?></th>
+            </tr>
+            <?php foreach ($thirdpartyMapping as $entry) { ?>
+                <tr class="oddeven">
+                    <td>
+                        <input type="text" name="brevo_attribute_thirdparty[]" value="<?php echo dol_escape_htmltag($entry['attribute']); ?>" size="30" />
+                    </td>
+                    <td>
+                        <select name="brevo_field_thirdparty[]">
+                            <option value=""><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingSelectField')); ?></option>
+                            <?php if (!empty($thirdpartyFields['standard'])) { ?>
+                                <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingStandardGroup')); ?>">
+                                    <?php foreach ($thirdpartyFields['standard'] as $field => $label) { ?>
+                                        <?php $selected = ($entry['source'] === 'standard' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
+                                        <option value="standard:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
+                                    <?php } ?>
+                                </optgroup>
+                            <?php } ?>
+                            <?php if (!empty($thirdpartyFields['extrafields'])) { ?>
+                                <optgroup label="<?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingExtraGroup')); ?>">
+                                    <?php foreach ($thirdpartyFields['extrafields'] as $field => $label) { ?>
+                                        <?php $selected = ($entry['source'] === 'extrafield' && $entry['field'] === $field) ? ' selected="selected"' : ''; ?>
+                                        <option value="extrafield:<?php echo dol_escape_htmltag($field); ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($label); ?></option>
+                                    <?php } ?>
+                                </optgroup>
+                            <?php } ?>
+                        </select>
+                    </td>
+                </tr>
+            <?php } ?>
+            <tr class="oddeven">
+                <td colspan="2" class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingAddHint'); ?></td>
+            </tr>
+        </table>
+        <div class="center">
+            <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
+        </div>
+    </form>
+    <?php
+} elseif ($selectedTab === 'diagnostic') {
+    dol_include_once('/brevointegration/core/modules/modBrevoIntegration.class.php');
+    $moduleDescriptor = new modBrevoIntegration($db);
+    $moduleVersion = $moduleDescriptor->version;
+
+    print '<div class="fichecenter">';
+    print '    <div class="fichehalfleft">';
+    print '        <div class="box">';
+    print '            <h3>'.$langs->trans('BrevoDiagnosticTitle').'</h3>';
+    print '            <p class="opacitymedium">'.$langs->trans('BrevoDiagnosticIntro').'</p>';
+    print '            <table class="noborder" width="100%">';
+    print '                <tr class="liste_titre">';
+    print '                    <th>'.$langs->trans('BrevoDiagnosticParameter').'</th>';
+    print '                    <th>'.$langs->trans('BrevoDiagnosticValue').'</th>';
+    print '                </tr>';
+    print '                <tr class="oddeven">';
+    print '                    <td>'.$langs->trans('BrevoDiagnosticVersionLabel').'</td>';
+    print '                    <td>'.dol_escape_htmltag((string) $moduleVersion).'</td>';
+    print '                </tr>';
+    print '            </table>';
+    print '        </div>';
+    print '    </div>';
+    print '</div>';
+}
+
+dol_fiche_end();
+
 llxFooter();
 $db->close();
