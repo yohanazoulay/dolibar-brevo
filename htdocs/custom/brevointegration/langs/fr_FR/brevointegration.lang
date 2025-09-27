@@ -14,6 +14,7 @@ BrevoDiagnosticVersionLabel=Version du module
 BrevoApiKeyLabel=Clé API Brevo
 BrevoApiKeySaved=Clé API validée et enregistrée.
 BrevoApiKeyRemoved=Clé API supprimée.
+BrevoMissingCurlExtension=L'extension PHP cURL est requise pour valider la clé API. Activez le module php-curl sur votre serveur.
 BrevoMissingApiKey=Veuillez renseigner une clé API Brevo valide.
 BrevoMissingEmail=Le contact ne possède pas d'adresse e-mail.
 BrevoSelectList=Veuillez sélectionner une liste Brevo.
