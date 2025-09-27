@@ -77,6 +77,7 @@ $langs->load('brevointegration@brevointegration');
 
 $form = new Form($db);
 $logService = new BrevoLogService($db, $conf);
+$storageStatus = $logService->getLogStorageStatus();
 
 $now = dol_now();
 $defaultStart = $now - (7 * 24 * 3600);
@@ -126,24 +127,34 @@ $offset = $limit * $page;
 
 $sortfield = GETPOST('sortfield', 'aZ09');
 $sortorder = GETPOST('sortorder', 'aZ09');
+$allowedSortfields = array('date_event', 'method', 'http_code', 'duration_ms', 'success');
+if (!in_array($sortfield, $allowedSortfields, true)) {
+    $sortfield = 'date_event';
+}
+$sortorder = strtoupper($sortorder) === 'ASC' ? 'ASC' : 'DESC';
 
-$resultSet = $logService->fetchLogs($startTimestamp, $endTimestamp, $limit, $offset, $sortfield, $sortorder);
-$logs = $resultSet['logs'];
-$total = $resultSet['total'];
-
+$logs = array();
+$total = 0;
 $param = '';
-if ($startTimestamp) {
-    $param .= '&filter_startday='.date('d', $startTimestamp);
-    $param .= '&filter_startmonth='.date('m', $startTimestamp);
-    $param .= '&filter_startyear='.date('Y', $startTimestamp);
-}
-if ($endTimestamp) {
-    $param .= '&filter_endday='.date('d', $endTimestamp);
-    $param .= '&filter_endmonth='.date('m', $endTimestamp);
-    $param .= '&filter_endyear='.date('Y', $endTimestamp);
-}
-if ($limit) {
-    $param .= '&limit='.$limit;
+
+if ($storageStatus['ready']) {
+    $resultSet = $logService->fetchLogs($startTimestamp, $endTimestamp, $limit, $offset, $sortfield, $sortorder);
+    $logs = $resultSet['logs'];
+    $total = $resultSet['total'];
+
+    if ($startTimestamp) {
+        $param .= '&filter_startday='.date('d', $startTimestamp);
+        $param .= '&filter_startmonth='.date('m', $startTimestamp);
+        $param .= '&filter_startyear='.date('Y', $startTimestamp);
+    }
+    if ($endTimestamp) {
+        $param .= '&filter_endday='.date('d', $endTimestamp);
+        $param .= '&filter_endmonth='.date('m', $endTimestamp);
+        $param .= '&filter_endyear='.date('Y', $endTimestamp);
+    }
+    if ($limit) {
+        $param .= '&limit='.$limit;
+    }
 }
 
 llxHeader('', $langs->trans('BrevoLogsTitle'));
@@ -151,6 +162,25 @@ llxHeader('', $langs->trans('BrevoLogsTitle'));
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php">'.$langs->trans('BackToModuleList').'</a>';
 print load_fiche_titre($langs->trans('BrevoLogsTitle'), $linkback, 'icon-picto-brevo.svg@brevointegration');
 print '<p class="opacitymedium">'.$langs->trans('BrevoLogsIntro').'</p>';
+
+if (!$storageStatus['exists']) {
+    $tableName = dol_escape_htmltag($storageStatus['table_name']);
+    print '<div class="warning">'.$langs->trans('BrevoLogsStorageMissingTable', $tableName).'</div>';
+    llxFooter();
+    $db->close();
+
+    return;
+}
+
+if (!$storageStatus['ready']) {
+    $missingColumns = array_map('dol_escape_htmltag', $storageStatus['missing_columns']);
+    $missingList = implode(', ', $missingColumns);
+    print '<div class="warning">'.$langs->trans('BrevoLogsStorageMissingColumns', $missingList).'</div>';
+    llxFooter();
+    $db->close();
+
+    return;
+}
 
 print '<form method="GET" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" class="filter">';
 print '<table class="noborder" width="100%">';

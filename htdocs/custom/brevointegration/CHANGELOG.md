@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2025-10-02
+### Fixed
+- Correction de l'URL de l'éditeur vers le domaine officiel `meditrust.io`.
+- Neutralisation des requêtes SQL sur la page des journaux lorsque la table `llx_brevo_log` n'est pas installée ou incomplète afin d'éviter les erreurs 500.
+
 ## [1.3.0] - 2025-10-01
 ### Added
 - Synchronisation des contacts Brevo basée sur les catégories Dolibarr avec déclenchement direct depuis les fiches.

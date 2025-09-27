@@ -62,7 +62,7 @@ class BrevoLog extends CommonObject
      * @param User|null $user User performing the action
      * @return int <0 if KO, id of created object if OK
      */
-    public function create(User $user = null)
+    public function create(?User $user = null)
     {
         $this->error = '';
         $this->errors = array();
@@ -73,7 +73,11 @@ class BrevoLog extends CommonObject
         $sql .= 'entity, date_event, method, endpoint, http_code, duration_ms, success, message';
         $sql .= ') VALUES (';
         $sql .= (int) $this->entity.',';
-        $sql .= $this->db->idate($now).',';
+        if (method_exists($this->db, 'idate')) {
+            $sql .= $this->db->idate($now).',';
+        } else {
+            $sql .= "'".date('Y-m-d H:i:s', (int) $now)."',";
+        }
         $sql .= "'".$this->db->escape($this->method)."',";
         $sql .= "'".$this->db->escape($this->endpoint)."',";
         $sql .= (int) $this->http_code.',';
