@@ -35,7 +35,7 @@ class modBrevoIntegration extends DolibarrModules
         $this->version = '1.2.1';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->special = 0;
-        $this->picto = 'brevointegration@brevointegration';
+        $this->picto = 'icon-picto-brevo@brevointegration';
 
         $this->dirs = array();
 
