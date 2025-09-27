@@ -134,7 +134,14 @@ if ($action === 'setapikey') {
             dolibarr_set_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
             setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
         } else {
-            setEventMessages($response['error'], null, 'errors');
+            $errorMessage = isset($response['error']) ? (string) $response['error'] : '';
+            if ($errorMessage === 'Missing PHP cURL extension') {
+                $errorMessage = $langs->trans('BrevoMissingCurlExtension');
+            }
+            if ($errorMessage === '') {
+                $errorMessage = $langs->trans('Error');
+            }
+            setEventMessages($errorMessage, null, 'errors');
         }
     }
 } elseif ($action === 'savefieldmapping') {

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 2025-10-03
+### Fixed
+- Empêche l'erreur fatale lors de la validation de la clé API lorsque l'extension PHP cURL est absente et affiche un message explicite.
+- Documente la dépendance à l'extension php-curl et localise le message d'erreur associé.
+
 ## [1.3.1] - 2025-10-02
 ### Fixed
 - Correction de l'URL de l'éditeur vers le domaine officiel `meditrust.io`.

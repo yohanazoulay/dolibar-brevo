@@ -159,6 +159,12 @@ class BrevoApi
             return $this->formatError('Missing API key');
         }
 
+        if (!function_exists('curl_init')) {
+            $this->recordLog($method, $endpoint, 0, 0, false, 'Missing PHP cURL extension');
+
+            return $this->formatError('Missing PHP cURL extension');
+        }
+
         $startTime = microtime(true);
         $ch = curl_init($url);
         if ($ch === false) {

@@ -2,9 +2,10 @@
 
 ## Installation
 
-1. Copier le dossier `brevointegration` dans `htdocs/custom/` de votre instance Dolibarr 21.0.2.
-2. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
-3. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer les tables de synchronisation et de journalisation (`llx_brevo_contactsync`, `llx_brevo_log`).
+1. Vérifiez que l'extension PHP **cURL** (`php-curl`) est installée et activée : le module l'utilise pour contacter l'API Brevo.
+2. Copier le dossier `brevointegration` dans `htdocs/custom/` de votre instance Dolibarr 21.0.2.
+3. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
+4. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer les tables de synchronisation et de journalisation (`llx_brevo_contactsync`, `llx_brevo_log`).
 
 ### Déploiement via l'assistant Dolibarr
 
