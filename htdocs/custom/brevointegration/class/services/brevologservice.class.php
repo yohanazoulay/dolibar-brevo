@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 dol_include_once('/brevointegration/class/brevolog.class.php');
+dol_include_once('/brevointegration/class/services/brevodatabasemaintenanceservice.class.php');
 if (!class_exists('BrevoLog')) {
     require_once __DIR__.'/../brevolog.class.php';
 }
@@ -27,6 +28,9 @@ class BrevoLogService
     /** @var array{exists:bool,fields:array<string,string>}|null */
     private $logTableSchema = null;
 
+    /** @var BrevoDatabaseMaintenanceService */
+    private $maintenanceService;
+
     /**
      * @param DoliDB     $db   Database handler
      * @param Conf|mixed $conf Global configuration
@@ -35,6 +39,7 @@ class BrevoLogService
     {
         $this->db = $db;
         $this->conf = $conf;
+        $this->maintenanceService = new BrevoDatabaseMaintenanceService($db);
     }
 
     /**
@@ -216,22 +221,11 @@ class BrevoLogService
      */
     public function getLogStorageStatus()
     {
-        $schema = $this->describeLogTable();
-        $required = $this->getRequiredLogColumns();
-        $missing = array();
-        foreach ($required as $column) {
-            if (!isset($schema['fields'][$column])) {
-                $missing[] = $column;
-            }
-        }
+        $status = $this->maintenanceService->getLogTableStatus();
+        $fields = !empty($status['available_columns']) ? $this->normalizeFieldMap($status['available_columns']) : array();
+        $this->logTableSchema = array('exists' => $status['exists'], 'fields' => $fields);
 
-        return array(
-            'table_name' => $this->getLogTableName(),
-            'exists' => $schema['exists'],
-            'ready' => $schema['exists'] && empty($missing),
-            'missing_columns' => $missing,
-            'available_columns' => array_keys($schema['fields'])
-        );
+        return $status;
     }
 
     /**
@@ -304,11 +298,7 @@ class BrevoLogService
      */
     private function getLogTableName()
     {
-        if (defined('MAIN_DB_PREFIX')) {
-            return MAIN_DB_PREFIX.'brevo_log';
-        }
-
-        return 'brevo_log';
+        return $this->maintenanceService->getLogTableName();
     }
 
     /**
@@ -322,39 +312,11 @@ class BrevoLogService
             return $this->logTableSchema;
         }
 
-        $schema = array('exists' => false, 'fields' => array());
-
-        if (!defined('MAIN_DB_PREFIX') || !is_object($this->db)) {
-            $this->logTableSchema = $schema;
-
-            return $schema;
-        }
-
-        $table = $this->getLogTableName();
-
-        if (method_exists($this->db, 'DDLDescTable')) {
-            $info = $this->db->DDLDescTable($table, '', '', true);
-            if (is_array($info) && isset($info['fields']) && is_array($info['fields']) && !empty($info['fields'])) {
-                $schema['exists'] = true;
-                foreach ($info['fields'] as $fieldName => $definition) {
-                    $canonical = strtolower((string) $fieldName);
-                    $schema['fields'][$canonical] = (string) $fieldName;
-                }
-
-                $this->logTableSchema = $schema;
-
-                return $schema;
-            }
-        }
-
-        if (method_exists($this->db, 'table_exists')) {
-            $schema['exists'] = $this->db->table_exists($table) ? true : false;
-        }
-
-        if ($schema['exists'] && empty($schema['fields'])) {
-            foreach ($this->getRequiredLogColumns() as $column) {
-                $schema['fields'][$column] = $column;
-            }
+        $schema = $this->maintenanceService->getLogTableSchema();
+        if (!empty($schema['fields'])) {
+            $schema['fields'] = $this->normalizeFieldMap($schema['fields']);
+        } else {
+            $schema['fields'] = array();
         }
 
         $this->logTableSchema = $schema;
@@ -370,6 +332,28 @@ class BrevoLogService
     private function getRequiredLogColumns()
     {
         return array('rowid', 'entity', 'date_event', 'method', 'endpoint', 'http_code', 'duration_ms', 'success', 'message');
+    }
+
+    /**
+     * Normalise a list or map of column names to a canonical=>actual mapping.
+     *
+     * @param array<int|string,string> $columns
+     * @return array<string,string>
+     */
+    private function normalizeFieldMap($columns)
+    {
+        $mapping = array();
+        foreach ($columns as $key => $value) {
+            if (is_string($key)) {
+                $canonical = strtolower((string) $key);
+                $mapping[$canonical] = (string) $value;
+            } else {
+                $canonical = strtolower((string) $value);
+                $mapping[$canonical] = (string) $value;
+            }
+        }
+
+        return $mapping;
     }
 
     /**
