@@ -1,12 +1,15 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.2.2] - 2025-09-27
 ### Changed
 - Utilisation du picto Brevo dédié pour le module et ses menus Dolibarr.
 
 ### Fixed
 - Ajout de l'icône `object_icon-picto-brevo.svg` pour l'affichage du module dans la liste Dolibarr.
 - Correction du lien de la roue dentée "Logs" pour les hébergements qui ne résolvaient pas le chemin `@brevointegration`.
+- Ajout d'un repli d'inclusion pour charger les classes Brevo en environnement SaaS où `dol_include_once` ne résout pas le chemin personnalisé.
 
 ## [1.2.1] - 2024-05-29
 ### Added

@@ -9,6 +9,9 @@ declare(strict_types=1);
  */
 
 dol_include_once('/brevointegration/class/brevolog.class.php');
+if (!class_exists('BrevoLog')) {
+    require_once __DIR__.'/../brevolog.class.php';
+}
 
 /**
  * Class BrevoLogService
