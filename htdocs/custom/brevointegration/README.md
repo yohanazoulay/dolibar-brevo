@@ -6,7 +6,7 @@
 2. Copier le dossier `brevointegration` dans `htdocs/custom/` de votre instance Dolibarr 21.0.2.
 3. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
 4. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer les tables de synchronisation et de journalisation (`llx_brevo_contactsync`, `llx_brevo_log`).
-5. En cas d'installation partielle ou de colonnes manquantes, l'onglet **Diagnostic** permet désormais de générer un patch SQL prêt à l'emploi pour remettre le schéma en conformité.
+5. En cas d'installation partielle ou de colonnes manquantes, l'onglet **Diagnostic** permet désormais de générer un patch SQL prêt à l'emploi pour remettre le schéma en conformité. Il exécute aussi un test complet INSERT/UPDATE/DELETE sur `llx_brevo_log` et vérifie la présence du `main.inc.php` attendu afin d'identifier les problèmes de droits ou de chemin.
 
 ### Déploiement via l'assistant Dolibarr
 
