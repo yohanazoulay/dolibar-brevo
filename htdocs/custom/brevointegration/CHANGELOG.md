@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.3.16] - 2025-10-18
+### Added
+- Ajout d'un logger dédié `brevo_admin.log` pour tracer chaque accès et les erreurs SQL de la page `admin/logs.php` avec un identifiant de requête.
+### Changed
+- Encadrement de la page d'administration des journaux dans un bloc `try/catch` pour consigner les exceptions et afficher un message d'erreur contrôlé au lieu d'une erreur 500.
+
 ## [1.3.15] - 2025-10-17
 ### Fixed
 - Empêche l'enregistrement d'une clé API Brevo invalide en vérifiant la connexion avant de sauvegarder et en journalisant l'appel.
