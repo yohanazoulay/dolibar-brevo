@@ -6,6 +6,27 @@
 2. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
 3. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer la table de synchronisation si nécessaire.
 
+### Déploiement via l'assistant Dolibarr
+
+Lors de l'utilisation du bouton **Déployer module externe** (upload ZIP), assurez-vous que :
+
+- Le zip contient un dossier racine unique `brevointegration/` sans niveau supplémentaire.
+- Le répertoire cible `htdocs/custom/brevointegration` n'existe pas ou est vide. Si une version précédente est encore présente, supprimez-la avec `rm -rf htdocs/custom/brevointegration` avant de relancer l'upload.
+- L'utilisateur PHP/FPM a les droits d'écriture sur `htdocs/custom/` et `documents/admin/temp/`.
+
+Si l'assistant affiche l'erreur :
+
+```
+Echec de copie du répertoire '/var/www/html/dolibarr/documents/admin/temp/brevointegration-x.y.z.dir/brevointegration' vers '/var/www/html/dolibarr/htdocs/custom/brevointegration'
+```
+
+1. Supprimez le répertoire cible `htdocs/custom/brevointegration` (ancien module ou copie partielle) puis réessayez.
+2. Videz les artefacts temporaires éventuels : `rm -rf documents/admin/temp/brevointegration-*`.
+3. Vérifiez les permissions : `chown -R www-data:www-data htdocs/custom documents/admin/temp` (adapté à votre distribution).
+4. Relancez enfin l'import du zip.
+
+Ces étapes évitent les conflits de copie lorsque Dolibarr tente d'écraser un module déjà présent.
+
 ## Arborescence du module
 
 Le zip distribué doit contenir **un unique dossier racine** `brevointegration/` avec les répertoires standards Dolibarr ci-dessous :

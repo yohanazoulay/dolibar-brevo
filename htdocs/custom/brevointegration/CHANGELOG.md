@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3] - 2024-05-27
+### Fixed
+- Ajout d'une procédure de dépannage documentée pour éviter l'échec de copie lors du déploiement du module via l'assistant Dolibarr.
+
 ## [1.0.2] - 2024-05-26
 ### Fixed
 - Correction de l'arborescence du package pour respecter le standard Dolibarr (suppression du sous-répertoire redondant).
