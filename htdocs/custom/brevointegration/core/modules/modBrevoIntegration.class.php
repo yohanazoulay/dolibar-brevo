@@ -2,18 +2,18 @@
 declare(strict_types=1);
 
 /**
- * @package   brevo-par-Meditrust
+ * @package   brevointegration
  * @author    Meditrust
  * @license   GPL-3.0-or-later
- * @brief     Brevo module descriptor for Dolibarr 21.0.2
+ * @brief     Brevo Integration module descriptor for Dolibarr 21.0.2
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
 
 /**
- * Class modBrevo
+ * Class modBrevoIntegration
  */
-class modBrevo extends DolibarrModules
+class modBrevoIntegration extends DolibarrModules
 {
     /**
      * Constructor
@@ -25,22 +25,22 @@ class modBrevo extends DolibarrModules
         $this->db = $db;
 
         $this->numero = 104601; // Unique module ID
-        $this->rights_class = 'brevo';
+        $this->rights_class = 'brevointegration';
         $this->family = 'crm';
         $this->module_position = '50';
         $this->editor_name = 'Meditrust';
         $this->editor_url = 'https://www.meditrust.fr';
         $this->name = preg_replace('/^mod/i', '', get_class($this));
         $this->description = 'Brevo integration for Dolibarr';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->special = 0;
-        $this->picto = 'brevo@brevo-par-Meditrust';
+        $this->picto = 'brevointegration@brevointegration';
 
         $this->dirs = array();
 
-        $this->config_page_url = array('setup.php@brevo-par-Meditrust');
-        $this->langfiles = array('brevo@brevo-par-Meditrust');
+        $this->config_page_url = array('setup.php@brevointegration');
+        $this->langfiles = array('brevointegration@brevointegration');
 
         $this->module_parts = array(
             'hooks' => array('thirdpartycard', 'contactcard')
@@ -73,29 +73,29 @@ class modBrevo extends DolibarrModules
         $this->menu[] = array(
             'fk_menu' => 0,
             'type' => 'top',
-            'titre' => 'Brevo',
-            'mainmenu' => 'brevo',
-            'leftmenu' => 'brevo_lists',
-            'url' => '/brevo-par-Meditrust/brevo/lists.php',
-            'langs' => 'brevo@brevo-par-Meditrust',
+            'titre' => 'BrevoIntegration',
+            'mainmenu' => 'brevointegration',
+            'leftmenu' => 'brevointegration_lists',
+            'url' => '/brevointegration/brevointegration/lists.php',
+            'langs' => 'brevointegration@brevointegration',
             'position' => 100,
-            'enabled' => '\$conf->brevo->enabled && \$user->rights->brevo->read',
-            'perms' => '\$user->rights->brevo->read',
+            'enabled' => '\$conf->brevointegration->enabled && \$user->rights->brevointegration->read',
+            'perms' => '\$user->rights->brevointegration->read',
             'target' => '',
             'user' => 2
         );
 
         $this->menu[] = array(
-            'fk_menu' => 'fk_mainmenu=brevo',
+            'fk_menu' => 'fk_mainmenu=brevointegration',
             'type' => 'left',
-            'titre' => 'BrevoLists',
-            'mainmenu' => 'brevo',
-            'leftmenu' => 'brevo_lists',
-            'url' => '/brevo-par-Meditrust/brevo/lists.php',
-            'langs' => 'brevo@brevo-par-Meditrust',
+            'titre' => 'BrevoIntegrationLists',
+            'mainmenu' => 'brevointegration',
+            'leftmenu' => 'brevointegration_lists',
+            'url' => '/brevointegration/brevointegration/lists.php',
+            'langs' => 'brevointegration@brevointegration',
             'position' => 101,
-            'enabled' => '\$conf->brevo->enabled && \$user->rights->brevo->read',
-            'perms' => '\$user->rights->brevo->read',
+            'enabled' => '\$conf->brevointegration->enabled && \$user->rights->brevointegration->read',
+            'perms' => '\$user->rights->brevointegration->read',
             'target' => '',
             'user' => 2
         );
@@ -109,7 +109,7 @@ class modBrevo extends DolibarrModules
      */
     public function init($options = '')
     {
-        $result = $this->_load_tables('/brevo-par-Meditrust/sql/');
+        $result = $this->_load_tables('/brevointegration/sql/');
         if ($result < 0) {
             return $result;
         }
