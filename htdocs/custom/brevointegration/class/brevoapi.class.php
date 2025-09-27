@@ -67,7 +67,13 @@ class BrevoApi
     {
         $previous = $this->apiKey;
         $this->setApiKey($apiKey);
-        $response = $this->request('GET', '/account');
+
+        try {
+            $response = $this->request('GET', '/account');
+        } catch (Throwable $exception) {
+            $response = $this->formatError('Unexpected client error: '.$exception->getMessage());
+        }
+
         $this->setApiKey($previous);
 
         return $response;
@@ -165,63 +171,69 @@ class BrevoApi
             return $this->formatError('Missing PHP cURL extension');
         }
 
+        $method = strtoupper((string) $method);
         $startTime = microtime(true);
-        $ch = curl_init($url);
-        if ($ch === false) {
-            $this->recordLog($method, $endpoint, 0, 0, false, 'Unable to initialize curl');
 
-            return $this->formatError('Unable to initialize curl');
+        try {
+            $ch = curl_init($url);
+            if ($ch === false) {
+                throw new RuntimeException('Unable to initialize curl');
+            }
+
+            $payloadString = $payload ? json_encode($payload) : '';
+
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+            if ($method === 'POST' || $method === 'PUT' || $method === 'PATCH') {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadString);
+            }
+
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            $info = curl_getinfo($ch);
+            curl_close($ch);
+
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
+            if ($response === false) {
+                $message = $error !== '' ? $error : 'Unknown curl error';
+                $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
+                return $this->formatError($message);
+            }
+
+            $decoded = json_decode($response, true);
+            if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+                $message = 'Invalid JSON response: '.json_last_error_msg();
+                $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
+                return $this->formatError($message);
+            }
+
+            $success = isset($info['http_code']) && $info['http_code'] >= 200 && $info['http_code'] < 300;
+            if (!$success) {
+                $message = isset($decoded['message']) ? $decoded['message'] : 'Unexpected HTTP status '.$info['http_code'];
+
+                $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
+                return $this->formatError($message, $info['http_code'], $decoded);
+            }
+
+            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 200, $durationMs, true);
+
+            return array(
+                'success' => true,
+                'http_code' => isset($info['http_code']) ? (int) $info['http_code'] : 200,
+                'data' => $decoded,
+            );
+        } catch (Throwable $exception) {
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+            $this->recordLog($method, $endpoint, 0, $durationMs, false, $exception->getMessage());
+
+            return $this->formatError('Unexpected client error: '.$exception->getMessage());
         }
-
-        $method = strtoupper($method);
-        $payloadString = $payload ? json_encode($payload) : '';
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        if ($method === 'POST' || $method === 'PUT' || $method === 'PATCH') {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadString);
-        }
-
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-
-        $durationMs = (int) round((microtime(true) - $startTime) * 1000);
-
-        if ($response === false) {
-            $message = $error !== '' ? $error : 'Unknown curl error';
-            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
-
-            return $this->formatError($message);
-        }
-
-        $decoded = json_decode($response, true);
-        if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-            $message = 'Invalid JSON response: '.json_last_error_msg();
-            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
-
-            return $this->formatError($message);
-        }
-
-        $success = isset($info['http_code']) && $info['http_code'] >= 200 && $info['http_code'] < 300;
-        if (!$success) {
-            $message = isset($decoded['message']) ? $decoded['message'] : 'Unexpected HTTP status '.$info['http_code'];
-
-            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
-
-            return $this->formatError($message, $info['http_code'], $decoded);
-        }
-
-        $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 200, $durationMs, true);
-
-        return array(
-            'success' => true,
-            'http_code' => isset($info['http_code']) ? (int) $info['http_code'] : 200,
-            'data' => $decoded,
-        );
     }
 
     /**

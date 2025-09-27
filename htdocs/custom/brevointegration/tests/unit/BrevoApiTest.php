@@ -74,4 +74,19 @@ class BrevoApiTest extends TestCase
 
         $this->assertSame('/contacts/lists/42', $api->lastEndpoint);
     }
+
+    public function testValidateApiKeyHandlesUnexpectedException(): void
+    {
+        $api = new class(new DoliDB(), new stdClass(), 'abc', new NullBrevoLogService()) extends BrevoApi {
+            protected function request($method, $endpoint, $payload = null)
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+
+        $response = $api->validateApiKey('abc');
+
+        $this->assertFalse($response['success']);
+        $this->assertStringContainsString('boom', $response['error']);
+    }
 }
