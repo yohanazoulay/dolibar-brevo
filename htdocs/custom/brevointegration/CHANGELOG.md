@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.3.17] - 2025-10-19
+### Changed
+- Ajout d'une journalisation chronologique détaillée sur `admin/logs.php` (démarrage, exécution des requêtes SQL, nombre de lignes récupérées, clôture) dans le fichier `brevo_admin.log`.
+- Harmonisation des messages d'erreur pour afficher explicitement « Erreur SQL » lors d'un échec de requête tout en conservant un rendu Dolibarr.
+- Ajout d'un bloc `finally` pour fermer systématiquement la connexion SQL, tracer le statut final et éviter les erreurs 500 silencieuses.
+
 ## [1.3.16] - 2025-10-18
 ### Added
 - Ajout d'un logger dédié `brevo_admin.log` pour tracer chaque accès et les erreurs SQL de la page `admin/logs.php` avec un identifiant de requête.
