@@ -14,6 +14,9 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
+if (!class_exists('BrevoLogService')) {
+    require_once __DIR__.'/../class/services/brevologservice.class.php';
+}
 
 global $langs, $user, $conf, $db;
 
