@@ -117,6 +117,20 @@
 - **Solution retenue / correctif appliqué** : Création d'un helper `brevointegration_security.lib.php` qui tente de charger les bibliothèques natives et fournit un repli CSRF contrôlé (journalisation + génération/validation locale) pour éviter l'erreur 500.
 - **Statut actuel** : corrigé
 
+### BUG-2025-10-18-LOGS-NO-TRACE
+- **ID du bug** : BUG-2025-10-18-LOGS-NO-TRACE
+- **Description** : La page `custom/brevointegration/admin/logs.php` renvoie une erreur 500 silencieuse lorsque la requête SQL échoue, sans trace dans `dolibarr.log`.
+- **Date de détection** : 2025-10-18
+- **Étapes pour reproduire** :
+  1. Accéder à `custom/brevointegration/admin/logs.php` sur un environnement où la table `llx_brevo_log` est présente mais où l'accès SQL échoue (droits insuffisants, schéma incomplet).
+  2. Constater l'erreur HTTP 500.
+  3. Vérifier l'absence de trace exploitable dans `dolibarr.log`.
+- **Solutions déjà testées** :
+  - Tentative 1 : S'appuyer uniquement sur `dol_syslog()` pour les erreurs SQL.
+    - Résultat : Aucune trace lorsque PHP plante avant la journalisation centrale.
+- **Solution retenue / correctif appliqué** : Création d'un logger dédié `brevo_admin.log` avec enregistrement systématique des requêtes et encapsulation de la page dans un `try/catch` pour afficher un message contrôlé.
+- **Statut actuel** : corrigé
+
 ### BUG-2025-10-16-DISABLE-CONST
 - **ID du bug** : BUG-2025-10-16-DISABLE-CONST
 - **Description** : Impossible de désactiver le module depuis la liste des modules Dolibarr, le curseur revient immédiatement à « activé ».
