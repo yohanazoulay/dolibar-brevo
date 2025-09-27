@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2024-05-28
+### Added
+- Configuration avancée des correspondances de champs Dolibarr/Brevo (champs standards et extrafields) avec interface d'administration dédiée.
+- Nouveau service de mapping pour exploiter les correspondances lors de la synchronisation des contacts.
+
 ## [1.0.3] - 2024-05-27
 ### Fixed
 - Ajout d'une procédure de dépannage documentée pour éviter l'échec de copie lors du déploiement du module via l'assistant Dolibarr.

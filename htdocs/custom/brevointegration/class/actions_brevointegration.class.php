@@ -14,6 +14,7 @@ require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/brevosync.class.php');
+dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 
 /**
  * Class ActionsBrevointegration
@@ -281,15 +282,97 @@ class ActionsBrevointegration
      */
     private function buildContactAttributes($object, array $context)
     {
+        global $conf;
+
+        $service = new BrevoFieldMappingService($this->db, $conf);
         $attributes = array();
+
         if (in_array('contactcard', $context)) {
-            $attributes['FIRSTNAME'] = isset($object->firstname) ? $object->firstname : '';
-            $attributes['LASTNAME'] = isset($object->lastname) ? $object->lastname : '';
+            $attributes = $this->buildAttributesForType($object, 'contact', $service);
         } elseif (in_array('thirdpartycard', $context)) {
-            $attributes['FIRSTNAME'] = '';
-            $attributes['LASTNAME'] = isset($object->name) ? $object->name : '';
+            $attributes = $this->buildAttributesForType($object, 'thirdparty', $service);
         }
 
         return $attributes;
+    }
+
+    /**
+     * Build attribute array for a specific Dolibarr object type.
+     *
+     * @param CommonObject             $object  Current object
+     * @param string                   $type    contact|thirdparty
+     * @param BrevoFieldMappingService $service Mapping service
+     * @return array<string,string>
+     */
+    private function buildAttributesForType($object, $type, BrevoFieldMappingService $service)
+    {
+        $attributes = array();
+        $mapping = $service->getMappingForType($type);
+
+        foreach ($mapping as $entry) {
+            if (empty($entry['attribute']) || empty($entry['source']) || empty($entry['field'])) {
+                continue;
+            }
+
+            $value = '';
+            if ($entry['source'] === 'standard') {
+                $value = $this->getStandardFieldValue($object, $entry['field']);
+            } elseif ($entry['source'] === 'extrafield') {
+                $value = $this->getExtrafieldValue($object, $entry['field']);
+            }
+
+            if (is_array($value)) {
+                $attributes[$entry['attribute']] = implode(', ', $value);
+            } else {
+                $attributes[$entry['attribute']] = (string) $value;
+            }
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Retrieve standard field value from object.
+     *
+     * @param CommonObject $object Current object
+     * @param string       $field  Property name
+     * @return string
+     */
+    private function getStandardFieldValue($object, $field)
+    {
+        if (isset($object->{$field})) {
+            return (string) $object->{$field};
+        }
+
+        return '';
+    }
+
+    /**
+     * Retrieve extrafield value from object.
+     *
+     * @param CommonObject $object Current object
+     * @param string       $field  Extrafield code
+     * @return string|array<string>
+     */
+    private function getExtrafieldValue($object, $field)
+    {
+        $key = 'options_'.$field;
+
+        if (!isset($object->array_options[$key])) {
+            if (method_exists($object, 'fetch_optionals') && isset($object->id) && isset($object->table_element)) {
+                $object->fetch_optionals($object->id, $object->table_element);
+            }
+        }
+
+        if (isset($object->array_options[$key])) {
+            $value = $object->array_options[$key];
+            if (is_array($value)) {
+                return $value;
+            }
+
+            return (string) $value;
+        }
+
+        return '';
     }
 }
