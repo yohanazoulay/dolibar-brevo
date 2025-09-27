@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2025-10-09
+### Fixed
+- Remplacement du chargement heuristique de `main.inc.php` sur la page des journaux par un `require` déterministe pour éviter les erreurs 500 en environnement proxifié.
+- Encadrement de l'enregistrement de la clé API dans un bloc `try/catch` avec message d'erreur localisé pour exposer proprement les échecs inattendus.
+
 ## [1.3.6] - 2025-10-08
 ### Fixed
 - Empêche l'erreur fatale lors de la validation de la clé API lorsque l'extension PHP JSON est absente et affiche un message explicite.
