@@ -4,6 +4,9 @@
 ### Changed
 - Utilisation du picto Brevo dédié pour le module et ses menus Dolibarr.
 
+### Fixed
+- Ajout de l'icône `object_icon-picto-brevo.svg` pour l'affichage du module dans la liste Dolibarr.
+
 ## [1.2.1] - 2024-05-29
 ### Added
 - Stockage du libellé des listes Brevo synchronisées pour afficher un titre compréhensible dans les fiches contact et tiers.
