@@ -15,6 +15,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
+dol_include_once('/brevointegration/lib/brevointegration_date.lib.php');
 
 /**
  * Build a timestamp using Dolibarr helper when available, otherwise fallback to PHP's mktime.
@@ -154,10 +155,16 @@ if (!$storageStatus['exists']) {
     $conditions = array('entity = '.((int) $conf->entity));
 
     if ($startTimestamp > 0) {
-        $conditions[] = 'date_event >= '.(method_exists($db, 'idate') ? $db->idate($startTimestamp) : "'".date('Y-m-d H:i:s', (int) $startTimestamp)."'");
+        $startSql = brevointegration_format_sql_datetime($db, $startTimestamp);
+        if ($startSql !== null) {
+            $conditions[] = 'date_event >= '.$startSql;
+        }
     }
     if ($endTimestamp > 0) {
-        $conditions[] = 'date_event <= '.(method_exists($db, 'idate') ? $db->idate($endTimestamp) : "'".date('Y-m-d H:i:s', (int) $endTimestamp)."'");
+        $endSql = brevointegration_format_sql_datetime($db, $endTimestamp);
+        if ($endSql !== null) {
+            $conditions[] = 'date_event <= '.$endSql;
+        }
     }
 
     $whereClause = implode(' AND ', $conditions);

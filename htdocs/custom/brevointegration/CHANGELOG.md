@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.12] - 2025-10-14
+### Fixed
+- Encadrement systématique des dates SQL via un helper dédié pour éviter les erreurs de syntaxe lorsque `DoliDB::idate()` ne renvoie pas de quotes (MySQL/MariaDB).
+- Sécurisation des enregistrements `BrevoSync` et `BrevoLog` avec le même helper afin de garantir la compatibilité multi-SGBD.
+
 ## [1.3.11] - 2025-10-13
 ### Fixed
 - Normalisation défensive du statut de la table `llx_brevo_log` pour éviter l'erreur 500 lorsque la liste des colonnes manquantes est invalide.
