@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.2.4] - 2025-09-28
+### Fixed
+- Suppression du repli d'inclusion redondant sur la page des journaux pour éviter les erreurs fatales en environnement SaaS.
+- Protection de l'accès au message du journal lorsqu'il est absent afin d'éviter les notices en mode strict.
+
 ## [1.2.3] - 2025-09-27
 ### Fixed
 - Fallback vers `mktime` lorsque `dol_mktime` n'est pas disponible afin d'éviter l'erreur fatale sur la page des journaux.
