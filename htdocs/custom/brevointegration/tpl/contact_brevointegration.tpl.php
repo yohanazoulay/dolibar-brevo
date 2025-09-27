@@ -21,6 +21,9 @@ if (in_array('thirdpartycard', $context)) {
 } else {
     $cardUrl .= '?id='.(int) $object->id;
 }
+$categorySummary = isset($categorySummary) && is_array($categorySummary) ? $categorySummary : array();
+$contactCategories = isset($contactCategories) && is_array($contactCategories) ? $contactCategories : array();
+$canSyncCategories = !empty($canSyncCategories);
 ?>
 <div class="card mt-3">
     <div class="card-header">
@@ -48,6 +51,52 @@ if (in_array('thirdpartycard', $context)) {
                     <button type="submit" class="butAction"><?php echo dol_escape_htmltag($langs->trans('BrevoPushButton')); ?></button>
                 </div>
             </form>
+        <?php } ?>
+
+        <?php if (!empty($categorySummary) || !empty($contactCategories)) { ?>
+            <div class="mtopmore">
+                <h4><?php echo dol_escape_htmltag($langs->trans('BrevoCategorySyncTitle')); ?></h4>
+                <?php if (!empty($categorySummary)) { ?>
+                    <p class="opacitymedium"><?php echo $langs->trans('BrevoCategorySyncDescription'); ?></p>
+                    <ul class="list-unstyled">
+                        <?php foreach ($categorySummary as $categoryItem) { ?>
+                            <li class="mb1">
+                                <strong><?php echo dol_escape_htmltag($categoryItem['category_label'] !== '' ? $categoryItem['category_label'] : $langs->trans('BrevoCategorySyncUnnamed', $categoryItem['category_id'])); ?></strong>
+                                <?php if (!empty($categoryItem['lists'])) { ?>
+                                    <div class="opacitymedium">
+                                        <?php
+                                        $listLabels = array();
+                                        foreach ($categoryItem['lists'] as $listInfo) {
+                                            $label = isset($listInfo['label']) && $listInfo['label'] !== '' ? $listInfo['label'] : $langs->trans('BrevoCategorySyncListFallback', (int) $listInfo['id']);
+                                            $listLabels[] = dol_escape_htmltag($label);
+                                        }
+                                        echo implode(', ', $listLabels);
+                                        ?>
+                                    </div>
+                                <?php } ?>
+                            </li>
+                        <?php } ?>
+                    </ul>
+                    <?php if ($canSyncCategories) { ?>
+                        <form method="post" action="<?php echo dol_escape_htmltag($cardUrl); ?>" class="inline-block">
+                            <input type="hidden" name="token" value="<?php echo $token; ?>" />
+                            <input type="hidden" name="brevo_action" value="sync_categories" />
+                            <button type="submit" class="butAction"><?php echo dol_escape_htmltag($langs->trans('BrevoSyncCategoriesButton')); ?></button>
+                        </form>
+                    <?php } else { ?>
+                        <div class="opacitymedium"><?php echo dol_escape_htmltag($langs->trans('BrevoSyncCategoriesNoPermission')); ?></div>
+                    <?php } ?>
+                <?php } elseif (!empty($contactCategories)) { ?>
+                    <p class="opacitymedium"><?php echo $langs->trans('BrevoSyncCategoriesNoMapping'); ?></p>
+                    <ul class="list-unstyled">
+                        <?php foreach ($contactCategories as $label) { ?>
+                            <li><?php echo dol_escape_htmltag($label); ?></li>
+                        <?php } ?>
+                    </ul>
+                <?php } else { ?>
+                    <p class="opacitymedium"><?php echo $langs->trans('BrevoSyncCategoriesNoCategory'); ?></p>
+                <?php } ?>
+            </div>
         <?php } ?>
 
         <?php if (!empty($syncEntries)) { ?>

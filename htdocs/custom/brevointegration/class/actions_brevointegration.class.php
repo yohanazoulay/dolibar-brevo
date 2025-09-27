@@ -15,6 +15,7 @@ require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/brevosync.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
+dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
 
 /**
  * Class ActionsBrevointegration
@@ -74,6 +75,7 @@ class ActionsBrevointegration
 
         $api = new BrevoApi($this->db, $conf, $apiKey);
         $sync = new BrevoSync($this->db);
+        $categoryService = new BrevoCategoryMappingService($this->db, $conf);
 
         $contactId = $this->getContactId($object, $context);
         $thirdpartyId = $this->getThirdpartyId($object, $context);
@@ -148,6 +150,53 @@ class ActionsBrevointegration
             }
 
             setEventMessages($langs->trans('BrevoRemovalSuccess'), null, 'mesgs');
+        } elseif ($brevoAction === 'sync_categories') {
+            if (empty($user->rights->brevointegration->write)) {
+                setEventMessages($langs->trans('NotEnoughPermissions'), null, 'errors');
+                return -1;
+            }
+
+            $contactCategories = $categoryService->getContactCategoryIds($contactId);
+            if (empty($contactCategories)) {
+                setEventMessages($langs->trans('BrevoSyncCategoriesNoCategory'), null, 'errors');
+                return -1;
+            }
+
+            $listIds = $categoryService->getListIdsForCategories($contactCategories);
+            if (empty($listIds)) {
+                setEventMessages($langs->trans('BrevoSyncCategoriesNoMapping'), null, 'errors');
+                return -1;
+            }
+
+            $attributes = $this->buildContactAttributes($object, $context);
+            $response = $api->upsertContact($email, $attributes, $listIds);
+            if (empty($response['success'])) {
+                setEventMessages($response['error'], null, 'errors');
+                return -1;
+            }
+
+            $brevoContactId = isset($response['data']['id']) ? (string) $response['data']['id'] : $email;
+            $listLabels = array();
+            foreach ($listIds as $listId) {
+                $listLabels[$listId] = $this->fetchListLabel($api, $listId);
+            }
+
+            foreach ($listIds as $listId) {
+                $sync->fk_socpeople = $contactId;
+                $sync->fk_societe = $thirdpartyId;
+                $sync->brevo_list_id = $listId;
+                $sync->brevo_list_label = isset($listLabels[$listId]) ? $listLabels[$listId] : '';
+                $sync->brevo_contact_id = $brevoContactId;
+                $sync->status = 'ok';
+
+                $res = $sync->create($user);
+                if ($res < 0) {
+                    setEventMessages($sync->error, null, 'errors');
+                    return -1;
+                }
+            }
+
+            setEventMessages($langs->trans('BrevoCategorySyncSuccess'), null, 'mesgs');
         }
 
         return 0;
@@ -179,18 +228,36 @@ class ActionsBrevointegration
 
         $lists = array();
         $listsError = '';
+        $listLabelCache = array();
+        $apiInstance = null;
         if (!empty($conf->global->MAIN_BREVOINTEGRATION_APIKEY) && !empty($user->rights->brevointegration->read)) {
-            $api = new BrevoApi($this->db, $conf, $conf->global->MAIN_BREVOINTEGRATION_APIKEY);
-            $response = $api->getLists(50, 0);
+            $apiInstance = new BrevoApi($this->db, $conf, $conf->global->MAIN_BREVOINTEGRATION_APIKEY);
+            $response = $apiInstance->getLists(50, 0);
             if (!empty($response['success']) && isset($response['data']['lists'])) {
                 $lists = $response['data']['lists'];
+                foreach ($lists as $list) {
+                    if (!isset($list['id'])) {
+                        continue;
+                    }
+                    $listId = (int) $list['id'];
+                    $listLabelCache[$listId] = isset($list['name']) ? (string) $list['name'] : '';
+                }
             } elseif (!empty($response['error'])) {
                 $listsError = $response['error'];
             }
         }
 
         $sync = new BrevoSync($this->db);
-        $syncEntries = $sync->fetchByContact($this->getContactId($object, $context), $this->getThirdpartyId($object, $context));
+        $contactId = $this->getContactId($object, $context);
+        $thirdpartyId = $this->getThirdpartyId($object, $context);
+        $syncEntries = $sync->fetchByContact($contactId, $thirdpartyId);
+
+        $categoryService = new BrevoCategoryMappingService($this->db, $conf);
+        $contactCategoryIds = $categoryService->getContactCategoryIds($contactId);
+        $contactCategoryLabels = $categoryService->getCategoryLabels($contactCategoryIds);
+        $categoryMappings = $categoryService->getMappingsForContact($contactId);
+        $categorySummary = $this->buildCategorySummary($categoryMappings, $listLabelCache, $apiInstance);
+        $canSyncCategories = !empty($categorySummary) && !empty($user->rights->brevointegration->write);
 
         $form = new Form($this->db);
         $parameters = array(
@@ -201,11 +268,90 @@ class ActionsBrevointegration
             'syncEntries' => $syncEntries,
             'user' => $user,
             'form' => $form,
+            'contactCategories' => $contactCategoryLabels,
+            'categorySummary' => $categorySummary,
+            'canSyncCategories' => $canSyncCategories,
         );
 
         $hookmanager->resprints .= $this->renderTemplate('contact_brevointegration.tpl.php', $parameters);
 
         return 0;
+    }
+
+    /**
+     * Retrieve Brevo list label by identifier.
+     *
+     * @param BrevoApi $api    API wrapper
+     * @param int      $listId List identifier
+     * @return string
+     */
+    private function fetchListLabel(BrevoApi $api, $listId)
+    {
+        $listId = (int) $listId;
+        if ($listId <= 0) {
+            return '';
+        }
+
+        $response = $api->getList($listId);
+        if (!empty($response['success']) && !empty($response['data']['name'])) {
+            return (string) $response['data']['name'];
+        }
+
+        return '';
+    }
+
+    /**
+     * Build a category summary with associated Brevo lists.
+     *
+     * @param array<int,array<string,mixed>> $mappings        Mapping entries for the contact
+     * @param array<int,string>              $listLabelCache  Cached list labels
+     * @param BrevoApi|null                  $api             Optional API instance to resolve missing labels
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildCategorySummary(array $mappings, array &$listLabelCache, ?BrevoApi $api = null)
+    {
+        $summary = array();
+
+        foreach ($mappings as $entry) {
+            if (!isset($entry['category_id'], $entry['list_id'])) {
+                continue;
+            }
+
+            $categoryId = (int) $entry['category_id'];
+            $listId = (int) $entry['list_id'];
+            if ($categoryId <= 0 || $listId <= 0) {
+                continue;
+            }
+
+            if (!isset($summary[$categoryId])) {
+                $summary[$categoryId] = array(
+                    'category_id' => $categoryId,
+                    'category_label' => isset($entry['category_label']) ? (string) $entry['category_label'] : '',
+                    'lists' => array(),
+                );
+            }
+
+            $listLabel = isset($listLabelCache[$listId]) ? $listLabelCache[$listId] : '';
+            if ($listLabel === '' && $api instanceof BrevoApi) {
+                $listLabel = $this->fetchListLabel($api, $listId);
+                if ($listLabel !== '') {
+                    $listLabelCache[$listId] = $listLabel;
+                }
+            }
+
+            $summary[$categoryId]['lists'][$listId] = array(
+                'id' => $listId,
+                'label' => $listLabel,
+            );
+        }
+
+        $results = array();
+        foreach ($summary as $item) {
+            $item['lists'] = array_values($item['lists']);
+            $results[] = $item;
+        }
+
+        return $results;
     }
 
     /**

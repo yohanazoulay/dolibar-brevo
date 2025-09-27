@@ -12,6 +12,7 @@ require '../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
+dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
 
 global $langs, $user, $conf, $db;
 
@@ -63,6 +64,39 @@ function brevointegration_parse_mapping_from_post($attributeKey, $fieldKey)
     return $entries;
 }
 
+/**
+ * @param string $categoryKey
+ * @param string $listKey
+ * @return array<int,array<string,int>>
+ */
+function brevointegration_parse_category_mapping_from_post($categoryKey, $listKey)
+{
+    $categories = GETPOST($categoryKey, 'array');
+    $lists = GETPOST($listKey, 'array');
+
+    if (!is_array($categories) || !is_array($lists)) {
+        return array();
+    }
+
+    $entries = array();
+    $count = max(count($categories), count($lists));
+    for ($i = 0; $i < $count; $i++) {
+        $categoryId = isset($categories[$i]) ? (int) $categories[$i] : 0;
+        $listId = isset($lists[$i]) ? (int) $lists[$i] : 0;
+
+        if ($categoryId <= 0 || $listId <= 0) {
+            continue;
+        }
+
+        $entries[] = array(
+            'category_id' => $categoryId,
+            'list_id' => $listId,
+        );
+    }
+
+    return $entries;
+}
+
 if (!$user->admin) {
     accessforbidden();
 }
@@ -73,6 +107,7 @@ $langs->load('brevointegration@brevointegration');
 $action = GETPOST('action', 'alpha');
 $selectedTab = GETPOST('tab', 'alpha');
 $mappingService = new BrevoFieldMappingService($db, $conf);
+$categoryMappingService = new BrevoCategoryMappingService($db, $conf);
 
 if ($selectedTab === '') {
     $selectedTab = 'configuration';
@@ -117,6 +152,17 @@ if ($action === 'setapikey') {
     } else {
         setEventMessages($langs->trans('BrevoFieldMappingSaveError'), null, 'errors');
     }
+} elseif ($action === 'savecategorymapping') {
+    if (!checkToken()) {
+        accessforbidden();
+    }
+
+    $entries = brevointegration_parse_category_mapping_from_post('brevo_category_id', 'brevo_category_list_id');
+    if ($categoryMappingService->saveMappings($entries)) {
+        setEventMessages($langs->trans('BrevoCategoryMappingSaved'), null, 'mesgs');
+    } else {
+        setEventMessages($langs->trans('BrevoCategoryMappingSaveError'), null, 'errors');
+    }
 }
 
 $helpUrl = '';
@@ -135,12 +181,36 @@ dol_fiche_head($head, $selectedTab, $langs->trans('BrevoSetupTitle'), -1, 'icon-
 if ($selectedTab === 'configuration') {
     $token = newToken();
     $mappingToken = newToken();
+    $categoryToken = newToken();
     $contactMapping = $mappingService->getMappingForType('contact');
     $thirdpartyMapping = $mappingService->getMappingForType('thirdparty');
     $contactMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
     $thirdpartyMapping[] = array('attribute' => '', 'source' => '', 'field' => '');
     $contactFields = $mappingService->getAvailableFields('contact');
     $thirdpartyFields = $mappingService->getAvailableFields('thirdparty');
+    $categoryMappings = $categoryMappingService->getMappings();
+    $categoryMappings[] = array('category_id' => 0, 'list_id' => 0);
+    $availableCategories = $categoryMappingService->getAllContactCategories();
+    $categoryLists = array();
+    $categoryListError = '';
+    $apiKeyForLists = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? trim($conf->global->MAIN_BREVOINTEGRATION_APIKEY) : '';
+    if ($apiKeyForLists === '') {
+        $categoryListError = $langs->trans('BrevoMissingApiKey');
+    } else {
+        $listsApi = new BrevoApi($db, $conf, $apiKeyForLists);
+        $listsResponse = $listsApi->getLists(200, 0);
+        if (!empty($listsResponse['success']) && !empty($listsResponse['data']['lists'])) {
+            foreach ($listsResponse['data']['lists'] as $list) {
+                if (!isset($list['id'])) {
+                    continue;
+                }
+                $listId = (int) $list['id'];
+                $categoryLists[$listId] = isset($list['name']) ? (string) $list['name'] : '';
+            }
+        } elseif (!empty($listsResponse['error'])) {
+            $categoryListError = $listsResponse['error'];
+        }
+    }
     $supportInfo = sprintf(
         $langs->trans('BrevoModuleSupportInfo'),
         '<a href="https://meditrust.io" target="_blank" rel="noopener noreferrer">',
@@ -273,6 +343,56 @@ if ($selectedTab === 'configuration') {
             <?php } ?>
             <tr class="oddeven">
                 <td colspan="2" class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingAddHint'); ?></td>
+            </tr>
+        </table>
+        <div class="center">
+            <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
+        </div>
+    </form>
+    <h3><?php echo dol_escape_htmltag($langs->trans('BrevoCategoryMappingTitle')); ?></h3>
+    <p class="opacitymedium"><?php echo $langs->trans('BrevoCategoryMappingIntro'); ?></p>
+    <?php if ($categoryListError !== '') { ?>
+        <div class="warning"><?php echo dol_escape_htmltag($categoryListError); ?></div>
+    <?php } ?>
+    <?php if (empty($availableCategories)) { ?>
+        <div class="opacitymedium"><?php echo dol_escape_htmltag($langs->trans('BrevoCategoryMappingNoCategories')); ?></div>
+    <?php } ?>
+    <?php if ($categoryListError === '' && empty($categoryLists)) { ?>
+        <div class="opacitymedium"><?php echo dol_escape_htmltag($langs->trans('BrevoCategoryMappingNoLists')); ?></div>
+    <?php } ?>
+    <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
+        <input type="hidden" name="token" value="<?php echo $categoryToken; ?>" />
+        <input type="hidden" name="action" value="savecategorymapping" />
+        <input type="hidden" name="tab" value="configuration" />
+        <table class="noborder" width="100%">
+            <tr class="liste_titre">
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoCategoryMappingCategory')); ?></th>
+                <th><?php echo dol_escape_htmltag($langs->trans('BrevoCategoryMappingList')); ?></th>
+            </tr>
+            <?php foreach ($categoryMappings as $entry) { ?>
+                <tr class="oddeven">
+                    <td>
+                        <select name="brevo_category_id[]">
+                            <option value="0"><?php echo dol_escape_htmltag($langs->trans('Select')); ?></option>
+                            <?php foreach ($availableCategories as $categoryId => $categoryLabel) { ?>
+                                <?php $selected = ((int) $entry['category_id'] === (int) $categoryId) ? ' selected="selected"' : ''; ?>
+                                <option value="<?php echo (int) $categoryId; ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($categoryLabel); ?></option>
+                            <?php } ?>
+                        </select>
+                    </td>
+                    <td>
+                        <select name="brevo_category_list_id[]">
+                            <option value="0"><?php echo dol_escape_htmltag($langs->trans('Select')); ?></option>
+                            <?php foreach ($categoryLists as $listId => $listLabel) { ?>
+                                <?php $selected = ((int) $entry['list_id'] === (int) $listId) ? ' selected="selected"' : ''; ?>
+                                <option value="<?php echo (int) $listId; ?>"<?php echo $selected; ?>><?php echo dol_escape_htmltag($listLabel !== '' ? $listLabel : ('#'.$listId)); ?></option>
+                            <?php } ?>
+                        </select>
+                    </td>
+                </tr>
+            <?php } ?>
+            <tr class="oddeven">
+                <td colspan="2" class="opacitymedium"><?php echo $langs->trans('BrevoCategoryMappingAddHint'); ?></td>
             </tr>
         </table>
         <div class="center">

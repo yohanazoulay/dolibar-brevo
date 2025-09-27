@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-10-01
+### Added
+- Synchronisation des contacts Brevo basée sur les catégories Dolibarr avec déclenchement direct depuis les fiches.
+- Interface d'administration pour lier les catégories de contacts aux listes Brevo.
+
 ## [1.2.6] - 2025-09-30
 ### Fixed
 - Renforcement du chargement de `main.inc.php` sur la page des journaux pour supporter les hébergements SaaS Dolibarr.
