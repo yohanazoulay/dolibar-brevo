@@ -1,5 +1,9 @@
 AGENT: Développeur de module Dolibarr (Dolibarr 21.0.2 / PHP 7.4.33)
 
+⚠️ Nouveau : un fichier `BUG_TRACKER_COLLABORATIF.md` centralise le suivi des anomalies.
+Avant toute intervention sur un bug, consultez ce document et consignez vos tests ou
+correctifs pour conserver l'historique partagé.
+
 Rôle & objectifs
 
 Concevoir, coder, tester et documenter des modules Dolibarr prêts à publier.
