@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 require __DIR__.'/../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
 dol_include_once('/brevointegration/class/BrevoClient.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');

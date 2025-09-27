@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.3.10] - 2025-10-12
+### Fixed
+- Ajout explicite du chargement de `security.lib.php` pour rétablir la fonction `checkToken()` sur la page de configuration Brevo et dans les hooks.
+
 ## [1.3.9] - 2025-10-11
 ### Added
 - Diagnostic write test covering INSERT/UPDATE/DELETE on `llx_brevo_log` to detect permission issues proactively.
