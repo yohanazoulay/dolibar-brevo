@@ -1,0 +1,6 @@
+-- ===================================================================
+-- Brevo Integration 1.3.3 -> 1.3.4
+-- ===================================================================
+-- Aucun changement automatique : utilisez l'onglet Diagnostic du module
+-- pour générer le patch SQL adapté à votre schéma (`llx_brevo_log`,
+-- `llx_brevo_contactsync`).

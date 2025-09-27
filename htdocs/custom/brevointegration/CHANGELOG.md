@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.3.4] - 2025-10-06
+### Added
+- Génération d'un patch SQL depuis l'onglet Diagnostic pour recréer la table `llx_brevo_log` ou ajouter les colonnes manquantes.
+- Affichage des colonnes détectées pour `llx_brevo_log` et `llx_brevo_contactsync` afin de faciliter les audits de schéma.
+### Changed
+- Centralisation des contrôles de schéma dans un service de maintenance dédié pour fiabiliser les diagnostics.
+
 ## [1.3.3] - 2025-10-05
 ### Added
 - Checklist de diagnostic complète sur l'onglet d'administration avec vérification des extensions PHP, de la base de données et de la configuration Brevo pour expliquer les erreurs 500.

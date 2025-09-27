@@ -10,6 +10,7 @@ fichiers annexes (CHANGELOG, scripts SQL d'upgrade, etc.) pour refléter ce
 changement.
 
 Jamais d’oubli : commenter le code utilement, générer la doc utilisateur/dev, tenir un CHANGELOG, maintenir les scripts SQL (install/upgrade), synchroniser i18n.
+Toujours synchroniser le service `BrevoDatabaseMaintenanceService`, les scripts SQL (`sql/llx_brevo_contactsync.sql`, `sql/updates/*`) et l’onglet Diagnostic dès qu’un changement de schéma est introduit.
 
 Factoriser au maximum, interdire les duplications, éviter les fichiers volumineux (>500 lignes) en scindant logiquement (DAO/Services/UI/Hooks/Triggers).
 

@@ -14,6 +14,7 @@ dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
+dol_include_once('/brevointegration/class/services/brevodatabasemaintenanceservice.class.php');
 
 global $langs, $user, $conf, $db;
 
@@ -186,6 +187,8 @@ $action = GETPOST('action', 'alpha');
 $selectedTab = GETPOST('tab', 'alpha');
 $mappingService = new BrevoFieldMappingService($db, $conf);
 $categoryMappingService = new BrevoCategoryMappingService($db, $conf);
+$maintenanceService = new BrevoDatabaseMaintenanceService($db);
+$generatedPatchSql = array();
 
 if ($selectedTab === '') {
     $selectedTab = 'configuration';
@@ -247,6 +250,23 @@ if ($action === 'setapikey') {
         setEventMessages($langs->trans('BrevoCategoryMappingSaved'), null, 'mesgs');
     } else {
         setEventMessages($langs->trans('BrevoCategoryMappingSaveError'), null, 'errors');
+    }
+} elseif ($action === 'generatepatch') {
+    if (!checkToken()) {
+        accessforbidden();
+    }
+
+    $selectedTab = 'diagnostic';
+    $statuses = array(
+        'log' => $maintenanceService->getLogTableStatus(),
+        'contactsync' => $maintenanceService->getContactSyncTableStatus(),
+    );
+
+    $generatedPatchSql = $maintenanceService->buildPatch($statuses);
+    if (empty($generatedPatchSql)) {
+        setEventMessages($langs->trans('BrevoDiagnosticNoPatchNeeded'), null, 'mesgs');
+    } else {
+        setEventMessages($langs->trans('BrevoDiagnosticPatchGenerated'), null, 'mesgs');
     }
 }
 
@@ -647,10 +667,13 @@ if ($selectedTab === 'configuration') {
         'details' => $logStatus['exists'] ? $langs->trans('BrevoDiagnosticTableExists', $logStatus['table_name']) : $langs->trans('BrevoDiagnosticTableMissing', $logStatus['table_name'])
     );
     if ($logStatus['exists']) {
+        $logColumnsList = empty($logStatus['available_columns']) ? $langs->trans('BrevoDiagnosticColumnsListEmpty') : implode(', ', $logStatus['available_columns']);
+        $logColumnsDetail = empty($logStatus['missing_columns']) ? $langs->trans('BrevoDiagnosticColumnsOk') : $langs->trans('BrevoDiagnosticColumnsMissing', implode(', ', $logStatus['missing_columns']));
+        $logColumnsDetail .= ' — '.$langs->trans('BrevoDiagnosticColumnsList', $logColumnsList);
         $sections['database']['checks'][] = array(
             'label' => $langs->trans('BrevoDiagnosticLogTableColumns'),
             'status' => empty($logStatus['missing_columns']) ? 'ok' : 'ko',
-            'details' => empty($logStatus['missing_columns']) ? $langs->trans('BrevoDiagnosticColumnsOk') : $langs->trans('BrevoDiagnosticColumnsMissing', implode(', ', $logStatus['missing_columns']))
+            'details' => $logColumnsDetail
         );
 
         $logCountSql = 'SELECT COUNT(*) as total FROM '.$logStatus['table_name'].' WHERE 1=0';
@@ -673,13 +696,22 @@ if ($selectedTab === 'configuration') {
         }
     }
 
-    $contactTable = defined('MAIN_DB_PREFIX') ? MAIN_DB_PREFIX.'brevo_contactsync' : 'llx_brevo_contactsync';
-    $contactTableExists = brevointegration_table_exists($db, $contactTable);
+    $contactStatus = $maintenanceService->getContactSyncTableStatus();
     $sections['database']['checks'][] = array(
         'label' => $langs->trans('BrevoDiagnosticContactSyncTable'),
-        'status' => $contactTableExists ? 'ok' : 'warning',
-        'details' => $contactTableExists ? $langs->trans('BrevoDiagnosticTableExists', $contactTable) : $langs->trans('BrevoDiagnosticTableMissing', $contactTable)
+        'status' => $contactStatus['exists'] ? 'ok' : 'warning',
+        'details' => $contactStatus['exists'] ? $langs->trans('BrevoDiagnosticTableExists', $contactStatus['table_name']) : $langs->trans('BrevoDiagnosticTableMissing', $contactStatus['table_name'])
     );
+    if ($contactStatus['exists']) {
+        $contactColumnsList = empty($contactStatus['available_columns']) ? $langs->trans('BrevoDiagnosticColumnsListEmpty') : implode(', ', $contactStatus['available_columns']);
+        $contactColumnsDetail = empty($contactStatus['missing_columns']) ? $langs->trans('BrevoDiagnosticColumnsOk') : $langs->trans('BrevoDiagnosticColumnsMissing', implode(', ', $contactStatus['missing_columns']));
+        $contactColumnsDetail .= ' — '.$langs->trans('BrevoDiagnosticColumnsList', $contactColumnsList);
+        $sections['database']['checks'][] = array(
+            'label' => $langs->trans('BrevoDiagnosticContactSyncColumns'),
+            'status' => empty($contactStatus['missing_columns']) ? 'ok' : 'ko',
+            'details' => $contactColumnsDetail
+        );
+    }
 
     $logsPagePath = dol_buildpath('/brevointegration/admin/logs.php', 0);
     $logsPageExists = is_string($logsPagePath) && is_file($logsPagePath);
@@ -728,6 +760,26 @@ if ($selectedTab === 'configuration') {
     }
 
     print '</table>';
+
+    $patchNeeded = (!$logStatus['ready'] || !$contactStatus['ready']);
+    if ($patchNeeded) {
+        $patchToken = newToken();
+        print '<form action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" method="post" class="mtop25">';
+        print '    <input type="hidden" name="token" value="'.$patchToken.'" />';
+        print '    <input type="hidden" name="action" value="generatepatch" />';
+        print '    <input type="hidden" name="tab" value="diagnostic" />';
+        print '    <div class="center">';
+        print '        <input type="submit" class="button" value="'.dol_escape_htmltag($langs->trans('BrevoDiagnosticGeneratePatch')).'" />';
+        print '    </div>';
+        print '</form>';
+        print '<p class="opacitymedium center mtoponly">'.dol_escape_htmltag($langs->trans('BrevoDiagnosticPatchHint')).'</p>';
+    }
+
+    if (!empty($generatedPatchSql)) {
+        print '<h3>'.dol_escape_htmltag($langs->trans('BrevoDiagnosticPatchTitle')).'</h3>';
+        $patchContent = implode("\n", $generatedPatchSql);
+        print '<textarea class="flat centpercent" rows="10" readonly="readonly">'.dol_escape_htmltag($patchContent)."\n".'</textarea>';
+    }
 }
 
 dol_fiche_end();
