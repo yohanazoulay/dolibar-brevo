@@ -116,3 +116,19 @@
     - Résultat : Toujours en échec lorsque l'hébergeur bloque l'inclusion (fichier absent ou chemin filtré).
 - **Solution retenue / correctif appliqué** : Création d'un helper `brevointegration_security.lib.php` qui tente de charger les bibliothèques natives et fournit un repli CSRF contrôlé (journalisation + génération/validation locale) pour éviter l'erreur 500.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-16-DISABLE-CONST
+- **ID du bug** : BUG-2025-10-16-DISABLE-CONST
+- **Description** : Impossible de désactiver le module depuis la liste des modules Dolibarr, le curseur revient immédiatement à « activé ».
+- **Date de détection** : 2025-10-16
+- **Étapes pour reproduire** :
+  1. Aller sur `setup/modules.php`.
+  2. Cliquer sur l'interrupteur de désactivation du module Brevo Integration.
+  3. Constater que l'interrupteur revient à l'état activé après rechargement.
+- **Solutions déjà testées** :
+  - Tentative 1 : Vidage du cache navigateur et rechargement de la page.
+    - Résultat : Aucun effet, le module reste activé.
+  - Tentative 2 : Suppression manuelle de la constante `BREVO_MODULE_BREVOINTEGRATION`.
+    - Résultat : Le module se réactive automatiquement car Dolibarr s'appuie sur `MAIN_MODULE_BREVOINTEGRATION` pour gérer l'état.
+- **Solution retenue / correctif appliqué** : Harmonisation de la constante `$this->const_name` du descripteur pour qu'elle corresponde à `MAIN_MODULE_BREVOINTEGRATION`, ce qui aligne le module sur le mécanisme standard d'activation/désactivation Dolibarr.
+- **Statut actuel** : corrigé

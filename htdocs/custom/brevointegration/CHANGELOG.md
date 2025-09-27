@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.3.14] - 2025-10-16
+### Fixed
+- Restaure la constante `MAIN_MODULE_BREVOINTEGRATION` dans le descripteur afin de permettre la désactivation du module depuis l'administration Dolibarr.
+
 ## [1.3.13] - 2025-10-15
 ### Fixed
 - Ajout d'un helper de sécurité dédié pour charger automatiquement les bibliothèques Dolibarr et fournir un repli CSRF afin d'éviter l'erreur fatale « Call to undefined function checkToken() ».
