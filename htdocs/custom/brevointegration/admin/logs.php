@@ -18,6 +18,33 @@ if (!class_exists('BrevoLogService')) {
     require_once __DIR__.'/../class/services/brevologservice.class.php';
 }
 
+/**
+ * Build a timestamp using Dolibarr helper when available, otherwise fallback to PHP's mktime.
+ *
+ * @param int|string $hour   Hour component
+ * @param int|string $minute Minute component
+ * @param int|string $second Second component
+ * @param int|string $month  Month component
+ * @param int|string $day    Day component
+ * @param int|string $year   Year component
+ * @return int
+ */
+function brevointegrationBuildTimestamp($hour, $minute, $second, $month, $day, $year)
+{
+    $hour = (int) $hour;
+    $minute = (int) $minute;
+    $second = (int) $second;
+    $month = (int) $month;
+    $day = (int) $day;
+    $year = (int) $year;
+
+    if (function_exists('dol_mktime')) {
+        return (int) dol_mktime($hour, $minute, $second, $month, $day, $year);
+    }
+
+    return (int) mktime($hour, $minute, $second, $month, $day, $year);
+}
+
 global $langs, $user, $conf, $db;
 
 if (!$user->admin) {
@@ -40,21 +67,21 @@ $startTimestamp = $defaultStart;
 $endTimestamp = $defaultEnd;
 
 if (!$resetFilter) {
-    $startTimestamp = dol_mktime(
+    $startTimestamp = brevointegrationBuildTimestamp(
         0,
         0,
         0,
-        (int) GETPOST('filter_startmonth', 'int'),
-        (int) GETPOST('filter_startday', 'int'),
-        (int) GETPOST('filter_startyear', 'int')
+        GETPOST('filter_startmonth', 'int'),
+        GETPOST('filter_startday', 'int'),
+        GETPOST('filter_startyear', 'int')
     );
-    $endTimestamp = dol_mktime(
+    $endTimestamp = brevointegrationBuildTimestamp(
         23,
         59,
         59,
-        (int) GETPOST('filter_endmonth', 'int'),
-        (int) GETPOST('filter_endday', 'int'),
-        (int) GETPOST('filter_endyear', 'int')
+        GETPOST('filter_endmonth', 'int'),
+        GETPOST('filter_endday', 'int'),
+        GETPOST('filter_endyear', 'int')
     );
 
     if ($startTimestamp <= 0) {
