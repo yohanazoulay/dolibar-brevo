@@ -76,12 +76,14 @@ Cette structure garantit la compatibilité avec l'assistant « Déployer module
 2. Renseignez votre clé API Brevo. La clé est validée immédiatement via l'API (`GET /account`).
 3. Après validation, la clé est stockée dans la constante `MAIN_BREVOINTEGRATION_APIKEY`.
 4. Configurez les correspondances de champs Dolibarr <-> Brevo : pour chaque attribut Brevo, choisissez un champ standard ou un extrafield Dolibarr (contact ou tiers). Ajoutez une ligne vide pour créer une nouvelle association.
+5. Associez les catégories de contacts Dolibarr aux listes Brevo pour automatiser l'inscription des contacts dans les bonnes listes marketing.
 
 ## Utilisation
 
 - Consultez les listes Brevo synchronisées via le menu **Brevo Integration > Listes**. La pagination Dolibarr permet de naviguer entre les listes.
 - Depuis la fiche d'un tiers ou d'un contact Dolibarr, utilisez le bloc **Intégration Brevo** pour :
   - Pousser le contact dans une liste Brevo (`POST /contacts`).
+  - Synchroniser le contact avec toutes les listes liées à ses catégories Dolibarr.
   - Visualiser les listes dans lesquelles le contact est inscrit.
   - Retirer le contact d'une liste (`POST /contacts/lists/{id}/contacts/remove`).
 - Les attributs envoyés à Brevo reprennent les correspondances configurées (champs standards et extrafields Dolibarr).
