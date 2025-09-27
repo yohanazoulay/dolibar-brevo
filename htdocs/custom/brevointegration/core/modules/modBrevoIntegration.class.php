@@ -32,14 +32,14 @@ class modBrevoIntegration extends DolibarrModules
         $this->editor_url = 'https://www.meditrust.fr';
         $this->name = preg_replace('/^mod/i', '', get_class($this));
         $this->description = 'Brevo integration for Dolibarr';
-        $this->version = '1.0.3';
+        $this->version = '1.1.0';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->special = 0;
         $this->picto = 'brevointegration@brevointegration';
 
         $this->dirs = array();
 
-        $this->config_page_url = array('setup.php@brevointegration');
+        $this->config_page_url = array('setup.php@brevointegration', 'logs.php@brevointegration');
         $this->langfiles = array('brevointegration@brevointegration');
 
         $this->module_parts = array(
@@ -96,6 +96,21 @@ class modBrevoIntegration extends DolibarrModules
             'position' => 101,
             'enabled' => '\$conf->brevointegration->enabled && \$user->rights->brevointegration->read',
             'perms' => '\$user->rights->brevointegration->read',
+            'target' => '',
+            'user' => 2
+        );
+
+        $this->menu[] = array(
+            'fk_menu' => 'fk_mainmenu=brevointegration',
+            'type' => 'left',
+            'titre' => 'BrevoIntegrationLogs',
+            'mainmenu' => 'brevointegration',
+            'leftmenu' => 'brevointegration_logs',
+            'url' => '/brevointegration/admin/logs.php',
+            'langs' => 'brevointegration@brevointegration',
+            'position' => 102,
+            'enabled' => '\$conf->brevointegration->enabled && \$user->admin',
+            'perms' => '\$user->admin',
             'target' => '',
             'user' => 2
         );

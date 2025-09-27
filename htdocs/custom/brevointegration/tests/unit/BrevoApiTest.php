@@ -5,6 +5,24 @@ use PHPUnit\Framework\TestCase;
 
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 
+class NullBrevoLogService
+{
+    /** @var array */
+    public $records = array();
+
+    public function logRequest($method, $endpoint, $httpCode, $durationMs, $success, $message = '')
+    {
+        $this->records[] = array(
+            'method' => $method,
+            'endpoint' => $endpoint,
+            'httpCode' => $httpCode,
+            'durationMs' => $durationMs,
+            'success' => $success,
+            'message' => $message,
+        );
+    }
+}
+
 /**
  * @covers BrevoApi
  */
@@ -12,16 +30,18 @@ class BrevoApiTest extends TestCase
 {
     public function testGetListsWithoutApiKeyReturnsError(): void
     {
-        $api = new BrevoApi(new DoliDB(), new stdClass(), '');
+        $logService = new NullBrevoLogService();
+        $api = new BrevoApi(new DoliDB(), new stdClass(), '', $logService);
         $response = $api->getLists();
 
         $this->assertFalse($response['success']);
         $this->assertSame('Missing API key', $response['error']);
+        $this->assertSame('Missing API key', $logService->records[0]['message']);
     }
 
     public function testUpsertContactCastsListIdsToIntegers(): void
     {
-        $api = new class(new DoliDB(), new stdClass(), 'abc') extends BrevoApi {
+        $api = new class(new DoliDB(), new stdClass(), 'abc', new NullBrevoLogService()) extends BrevoApi {
             public $lastPayload;
 
             protected function request($method, $endpoint, $payload = null)

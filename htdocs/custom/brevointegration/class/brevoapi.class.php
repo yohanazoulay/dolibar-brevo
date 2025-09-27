@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions.lib.php';
+dol_include_once('/brevointegration/class/services/brevologservice.class.php');
 
 if (!function_exists('dol_buildpath')) {
     require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
@@ -28,16 +29,21 @@ class BrevoApi
     /** @var string */
     private $apiKey = '';
 
+    /** @var BrevoLogService|null */
+    private $logService;
+
     /**
      * @param DoliDB $db   Database handler
      * @param Conf   $conf Global configuration
      * @param string $apiKey API key
+     * @param mixed  $logService Optional log service dependency
      */
-    public function __construct($db, $conf, $apiKey = '')
+    public function __construct($db, $conf, $apiKey = '', $logService = null)
     {
         $this->db = $db;
         $this->conf = $conf;
         $this->apiKey = trim($apiKey);
+        $this->logService = $logService !== null ? $logService : new BrevoLogService($db, $conf);
     }
 
     /**
@@ -135,11 +141,16 @@ class BrevoApi
         );
 
         if (empty($this->apiKey)) {
+            $this->recordLog($method, $endpoint, 0, 0, false, 'Missing API key');
+
             return $this->formatError('Missing API key');
         }
 
+        $startTime = microtime(true);
         $ch = curl_init($url);
         if ($ch === false) {
+            $this->recordLog($method, $endpoint, 0, 0, false, 'Unable to initialize curl');
+
             return $this->formatError('Unable to initialize curl');
         }
 
@@ -159,21 +170,33 @@ class BrevoApi
         $info = curl_getinfo($ch);
         curl_close($ch);
 
+        $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
         if ($response === false) {
-            return $this->formatError($error !== '' ? $error : 'Unknown curl error');
+            $message = $error !== '' ? $error : 'Unknown curl error';
+            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
+            return $this->formatError($message);
         }
 
         $decoded = json_decode($response, true);
         if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-            return $this->formatError('Invalid JSON response: '.json_last_error_msg());
+            $message = 'Invalid JSON response: '.json_last_error_msg();
+            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
+            return $this->formatError($message);
         }
 
         $success = isset($info['http_code']) && $info['http_code'] >= 200 && $info['http_code'] < 300;
         if (!$success) {
             $message = isset($decoded['message']) ? $decoded['message'] : 'Unexpected HTTP status '.$info['http_code'];
 
+            $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 0, $durationMs, false, $message);
+
             return $this->formatError($message, $info['http_code'], $decoded);
         }
+
+        $this->recordLog($method, $endpoint, isset($info['http_code']) ? (int) $info['http_code'] : 200, $durationMs, true);
 
         return array(
             'success' => true,
@@ -200,5 +223,27 @@ class BrevoApi
             'error' => $message,
             'data' => $data,
         );
+    }
+
+    /**
+     * Record request in Brevo logs if service available.
+     *
+     * @param string $method     HTTP method
+     * @param string $endpoint   Endpoint path
+     * @param int    $httpCode   HTTP status code
+     * @param int    $durationMs Duration in milliseconds
+     * @param bool   $success    Success flag
+     * @param string $message    Optional message
+     * @return void
+     */
+    private function recordLog($method, $endpoint, $httpCode, $durationMs, $success, $message = '')
+    {
+        if ($this->logService && method_exists($this->logService, 'logRequest')) {
+            try {
+                $this->logService->logRequest($method, $endpoint, $httpCode, $durationMs, $success, $message);
+            } catch (Throwable $exception) {
+                dol_syslog(__METHOD__.' unable to record log: '.$exception->getMessage(), LOG_WARNING);
+            }
+        }
     }
 }

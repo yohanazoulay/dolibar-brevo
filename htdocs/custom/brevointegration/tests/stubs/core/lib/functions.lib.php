@@ -56,13 +56,19 @@ if (!function_exists('dol_include_once')) {
         }
         if (!file_exists($fullPath)) {
             $moduleRoot = dirname(__DIR__, 4);
-            $alt = $moduleRoot.$path;
-            if (substr($alt, -4) !== '.php') {
-                $alt .= '.php';
-            }
-            if (file_exists($alt)) {
-                require_once $alt;
-                return;
+            $alternatives = array(
+                $moduleRoot.$path,
+                dirname($moduleRoot).$path,
+            );
+            foreach ($alternatives as $alt) {
+                if (substr($alt, -4) !== '.php') {
+                    $alt .= '.php';
+                }
+                if (file_exists($alt)) {
+                    require_once $alt;
+
+                    return;
+                }
             }
         }
         if (file_exists($fullPath)) {
