@@ -8,41 +8,9 @@ declare(strict_types=1);
  * @brief     Page to display Brevo contact lists.
  */
 
-// Load Dolibarr environment
-$res = 0;
-if (!$res && !empty($_SERVER['CONTEXT_DOCUMENT_ROOT'])) {
-    $res = @include $_SERVER['CONTEXT_DOCUMENT_ROOT'].'/main.inc.php';
-}
-if (!$res) {
-    $tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
-    $tmp2 = realpath(__FILE__);
-    $i = strlen($tmp) - 1;
-    $j = strlen($tmp2) - 1;
-    while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] === $tmp2[$j]) {
-        $i--;
-        $j--;
-    }
-    if ($i > 0 && file_exists(substr($tmp, 0, ($i + 1)).'/main.inc.php')) {
-        $res = @include substr($tmp, 0, ($i + 1)).'/main.inc.php';
-    }
-    if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))).'/main.inc.php')) {
-        $res = @include dirname(substr($tmp, 0, ($i + 1))).'/main.inc.php';
-    }
-}
-if (!$res && file_exists('../main.inc.php')) {
-    $res = @include '../main.inc.php';
-}
-if (!$res && file_exists('../../main.inc.php')) {
-    $res = @include '../../main.inc.php';
-}
-if (!$res && file_exists('../../../main.inc.php')) {
-    $res = @include '../../../main.inc.php';
-}
-if (!$res) {
-    die('Include of main fails');
-}
+require __DIR__.'/../../main.inc.php';
 
-dol_include_once('/brevointegration/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/BrevoClient.class.php');
 
 global $langs, $db, $conf, $user;
 
@@ -70,18 +38,23 @@ $lists = array();
 $total = 0;
 $error = '';
 
-$apiKey = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : '';
+$apiKey = isset($conf->global->BREVO_APIKEY) ? (string) $conf->global->BREVO_APIKEY : '';
 if ($apiKey === '') {
     $error = $langs->trans('BrevoMissingApiKey');
 } else {
-    $api = new BrevoApi($db, $conf, $apiKey);
+    $api = new BrevoClient($db, $conf, $apiKey);
     $response = $api->getLists($limit, $offset);
     if (!empty($response['success'])) {
         $lists = isset($response['data']['lists']) ? $response['data']['lists'] : array();
         $total = isset($response['data']['count']) ? (int) $response['data']['count'] : count($lists);
     } else {
-        $error = $response['error'];
+        $error = isset($response['error']) && is_string($response['error']) ? $response['error'] : $langs->trans('BrevoConnectionFail');
+        dol_syslog(__FILE__.'::getLists '.$error, LOG_WARNING);
     }
+}
+
+if ($error !== '') {
+    setEventMessages($error, null, 'errors');
 }
 
 $title = $langs->trans('BrevoListsTitle');
@@ -89,9 +62,7 @@ llxHeader('', $title);
 
 print load_fiche_titre($title, '', 'icon-picto-brevo.svg@brevointegration');
 
-if ($error !== '') {
-    print '<div class="error">'.dol_escape_htmltag($error).'</div>';
-} else {
+if ($error === '') {
     print '<div class="div-table-responsive">';
     print '<table class="noborder centpercent">';
     print '<tr class="liste_titre">';

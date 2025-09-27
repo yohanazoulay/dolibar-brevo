@@ -40,7 +40,7 @@ brevointegration/
 │   └── setup.php
 ├── class/
 │   ├── actions_brevointegration.class.php
-│   ├── brevoapi.class.php
+│   ├── BrevoClient.class.php
 │   ├── brevolog.class.php
 │   ├── brevosync.class.php
 │   └── services/
@@ -49,7 +49,7 @@ brevointegration/
 │       └── brevologservice.class.php
 ├── core/
 │   └── modules/
-│       └── modBrevoIntegration.class.php
+│       └── modBrevointegration.class.php
 ├── langs/
 │   ├── en_US/
 │   │   └── brevointegration.lang
@@ -61,7 +61,7 @@ brevointegration/
 │   ├── bootstrap.php
 │   ├── phpunit.xml.dist
 │   └── unit/
-│       ├── BrevoApiTest.php
+│       ├── BrevoClientTest.php
 │       ├── BrevoFieldMappingServiceTest.php
 │       └── BrevoSyncTest.php
 ├── tpl/
@@ -76,8 +76,8 @@ Cette structure garantit la compatibilité avec l'assistant « Déployer module
 ## Configuration
 
 1. Rendez-vous dans **Configuration > Modules/Applications > Brevo > Paramètres**.
-2. Renseignez votre clé API Brevo. La clé est validée immédiatement via l'API (`GET /account`).
-3. Après validation, la clé est stockée dans la constante `MAIN_BREVOINTEGRATION_APIKEY`.
+2. Renseignez votre clé API Brevo et cliquez sur « Enregistrer ».
+3. Après enregistrement, la clé est stockée dans la constante `BREVO_APIKEY`. Utilisez ensuite le bouton « Tester la connexion » pour vérifier la validité de la clé (`GET /v3/account`).
 4. Configurez les correspondances de champs Dolibarr <-> Brevo : pour chaque attribut Brevo, choisissez un champ standard ou un extrafield Dolibarr (contact ou tiers). Ajoutez une ligne vide pour créer une nouvelle association.
 5. Associez les catégories de contacts Dolibarr aux listes Brevo pour automatiser l'inscription des contacts dans les bonnes listes marketing.
 

@@ -44,3 +44,19 @@
     - Résultat : Inclusion OK sur infrastructure de tests.
 - **Solution retenue / correctif appliqué** : Remplacement du loader heuristique par un `require` déterministe basé sur `__DIR__` et sécurisation de l'action `setapikey` avec `try/catch` pour exposer proprement les erreurs inattendues.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-10-BREVO-SETUP-500
+- **ID du bug** : BUG-2025-10-10-BREVO-SETUP-500
+- **Description** : Erreur 500 lors de l'ouverture des pages `admin/setup.php` et `admin/logs.php` en cas de clé API invalide ou de table de logs incomplète.
+- **Date de détection** : 2025-10-10
+- **Étapes pour reproduire** :
+  1. Enregistrer une clé API Brevo invalide ou vide puis déclencher le test de connexion.
+  2. Ouvrir `custom/brevointegration/admin/logs.php` quand la table `llx_brevo_log` est absente.
+  3. Constater l'erreur HTTP 500 (messages non interceptés / requêtes SQL non sécurisées).
+- **Solutions déjà testées** :
+  - Tentative 1 : Conserver l'ancien client `BrevoApi` avec validations à l'enregistrement.
+    - Résultat : Exceptions non interceptées → 500.
+  - Tentative 2 : Récupérer les journaux via `BrevoLogService::fetchLogs()` sans contrôler le tri.
+    - Résultat : SQL pouvant échouer selon la configuration → 500.
+- **Solution retenue / correctif appliqué** : Introduction d'un client `BrevoClient` tolérant aux erreurs, séparation des actions « Enregistrer » / « Tester » avec vérification CSRF, requêtes SQL paginées sécurisées et messages utilisateur via `setEventMessages()`.
+- **Statut actuel** : corrigé

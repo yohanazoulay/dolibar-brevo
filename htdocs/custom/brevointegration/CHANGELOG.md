@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2025-10-10
+### Fixed
+- Remplacement du client HTTP Brevo par `BrevoClient` tolérant aux erreurs et ajout d'un service de journalisation non bloquant.
+- Séparation de l'enregistrement et du test de la clé API avec gestion CSRF et affichage des erreurs via `setEventMessages()`.
+- Stabilisation de la page des journaux (tri/pagination sécurisés, messages d'erreur contrôlés) pour éliminer les erreurs 500.
+- Mise à jour des traductions et de la documentation pour refléter la nouvelle constante `BREVO_APIKEY` et les actions disponibles.
+
 ## [1.3.7] - 2025-10-09
 ### Fixed
 - Remplacement du chargement heuristique de `main.inc.php` sur la page des journaux par un `require` déterministe pour éviter les erreurs 500 en environnement proxifié.
