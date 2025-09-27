@@ -76,3 +76,32 @@ if (!function_exists('dol_include_once')) {
         }
     }
 }
+
+if (!function_exists('dolibarr_set_const')) {
+    function dolibarr_set_const($db, $name, $value, $type = 'chaine', $note = 0, $desc = '', $entity = 1)
+    {
+        if (!isset($GLOBALS['dolibarr_const'])) {
+            $GLOBALS['dolibarr_const'] = array();
+        }
+        if (!isset($GLOBALS['dolibarr_const'][$entity])) {
+            $GLOBALS['dolibarr_const'][$entity] = array();
+        }
+
+        $GLOBALS['dolibarr_const'][$entity][$name] = $value;
+
+        return 1;
+    }
+}
+
+if (!function_exists('dolibarr_del_const')) {
+    function dolibarr_del_const($db, $name, $entity = 1)
+    {
+        if (isset($GLOBALS['dolibarr_const'][$entity][$name])) {
+            unset($GLOBALS['dolibarr_const'][$entity][$name]);
+
+            return 1;
+        }
+
+        return 0;
+    }
+}

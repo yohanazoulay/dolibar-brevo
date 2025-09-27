@@ -42,6 +42,7 @@ brevointegration/
 │   ├── brevolog.class.php
 │   ├── brevosync.class.php
 │   └── services/
+│       ├── brevofieldmappingservice.class.php
 │       └── brevologservice.class.php
 ├── core/
 │   └── modules/
@@ -58,6 +59,7 @@ brevointegration/
 │   ├── phpunit.xml.dist
 │   └── unit/
 │       ├── BrevoApiTest.php
+│       ├── BrevoFieldMappingServiceTest.php
 │       └── BrevoSyncTest.php
 ├── tpl/
 │   └── contact_brevointegration.tpl.php
@@ -73,6 +75,7 @@ Cette structure garantit la compatibilité avec l'assistant « Déployer module
 1. Rendez-vous dans **Configuration > Modules/Applications > Brevo > Paramètres**.
 2. Renseignez votre clé API Brevo. La clé est validée immédiatement via l'API (`GET /account`).
 3. Après validation, la clé est stockée dans la constante `MAIN_BREVOINTEGRATION_APIKEY`.
+4. Configurez les correspondances de champs Dolibarr <-> Brevo : pour chaque attribut Brevo, choisissez un champ standard ou un extrafield Dolibarr (contact ou tiers). Ajoutez une ligne vide pour créer une nouvelle association.
 
 ## Utilisation
 
@@ -81,6 +84,7 @@ Cette structure garantit la compatibilité avec l'assistant « Déployer module
   - Pousser le contact dans une liste Brevo (`POST /contacts`).
   - Visualiser les listes dans lesquelles le contact est inscrit.
   - Retirer le contact d'une liste (`POST /contacts/lists/{id}/contacts/remove`).
+- Les attributs envoyés à Brevo reprennent les correspondances configurées (champs standards et extrafields Dolibarr).
 - Les synchronisations sont mémorisées dans la table `llx_brevo_contactsync` avec le statut et la date de dernière action.
 - Les appels API Brevo sont historisés dans `llx_brevo_log` et consultables depuis **Configuration > Brevo Logs** (module activé).
 
