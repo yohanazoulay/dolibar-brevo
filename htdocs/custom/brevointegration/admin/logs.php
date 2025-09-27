@@ -8,7 +8,31 @@ declare(strict_types=1);
  * @brief     Administration page to inspect Brevo API logs.
  */
 
-require '../../../main.inc.php';
+// ---- Robust loader for main.inc.php (works with SaaS aliases) ----
+$res = 0;
+if (!$res && !empty($_SERVER['CONTEXT_DOCUMENT_ROOT'])) {
+    $res = @include $_SERVER['CONTEXT_DOCUMENT_ROOT'].'/main.inc.php';
+}
+if (!$res && !empty($_SERVER['DOCUMENT_ROOT'])) {
+    $res = @include $_SERVER['DOCUMENT_ROOT'].'/main.inc.php';
+}
+if (!$res && !empty($_SERVER['SCRIPT_FILENAME'])) {
+    $tmp = dirname($_SERVER['SCRIPT_FILENAME']);
+    for ($i = 0; $i < 10 && !$res; $i++) {
+        if (file_exists($tmp.'/main.inc.php')) {
+            $res = @include $tmp.'/main.inc.php';
+        }
+        $tmp = dirname($tmp);
+    }
+}
+if (!$res && file_exists(__DIR__.'/../../../main.inc.php')) {
+    $res = @include __DIR__.'/../../../main.inc.php';
+}
+if (!$res) {
+    http_response_code(500);
+    die('Failed to include Dolibarr main.inc.php');
+}
+// ------------------------------------------------------------------
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
