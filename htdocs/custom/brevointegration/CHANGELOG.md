@@ -6,6 +6,7 @@
 
 ### Fixed
 - Ajout de l'icône `object_icon-picto-brevo.svg` pour l'affichage du module dans la liste Dolibarr.
+- Correction du lien de la roue dentée "Logs" pour les hébergements qui ne résolvaient pas le chemin `@brevointegration`.
 
 ## [1.2.1] - 2024-05-29
 ### Added
