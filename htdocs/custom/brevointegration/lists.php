@@ -87,7 +87,7 @@ if ($apiKey === '') {
 $title = $langs->trans('BrevoListsTitle');
 llxHeader('', $title);
 
-print load_fiche_titre($title, '', 'brevointegration@brevointegration');
+print load_fiche_titre($title, '', 'icon-picto-brevo.svg@brevointegration');
 
 if ($error !== '') {
     print '<div class="error">'.dol_escape_htmltag($error).'</div>';

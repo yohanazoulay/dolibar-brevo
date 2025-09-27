@@ -98,7 +98,7 @@ if ($limit) {
 llxHeader('', $langs->trans('BrevoLogsTitle'));
 
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php">'.$langs->trans('BackToModuleList').'</a>';
-print load_fiche_titre($langs->trans('BrevoLogsTitle'), $linkback, 'brevointegration@brevointegration');
+print load_fiche_titre($langs->trans('BrevoLogsTitle'), $linkback, 'icon-picto-brevo.svg@brevointegration');
 print '<p class="opacitymedium">'.$langs->trans('BrevoLogsIntro').'</p>';
 
 print '<form method="GET" action="'.dol_escape_htmltag($_SERVER['PHP_SELF']).'" class="filter">';

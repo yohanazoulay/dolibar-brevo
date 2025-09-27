@@ -35,7 +35,7 @@ class modBrevoIntegration extends DolibarrModules
         $this->version = '1.2.1';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->special = 0;
-        $this->picto = 'icon-picto-brevo@brevointegration';
+        $this->picto = 'icon-picto-brevo.svg@brevointegration';
 
         $this->dirs = array();
 
@@ -78,7 +78,7 @@ class modBrevoIntegration extends DolibarrModules
             'leftmenu' => 'brevointegration_lists',
             'url' => '/brevointegration/brevointegration/lists.php',
             'langs' => 'brevointegration@brevointegration',
-            'picto' => 'icon-picto-brevo@brevointegration',
+            'picto' => 'icon-picto-brevo.svg@brevointegration',
             'position' => 100,
             'enabled' => '\$conf->brevointegration->enabled && \$user->rights->brevointegration->read',
             'perms' => '\$user->rights->brevointegration->read',
@@ -94,7 +94,7 @@ class modBrevoIntegration extends DolibarrModules
             'leftmenu' => 'brevointegration_lists',
             'url' => '/brevointegration/brevointegration/lists.php',
             'langs' => 'brevointegration@brevointegration',
-            'picto' => 'icon-picto-brevo@brevointegration',
+            'picto' => 'icon-picto-brevo.svg@brevointegration',
             'position' => 101,
             'enabled' => '\$conf->brevointegration->enabled && \$user->rights->brevointegration->read',
             'perms' => '\$user->rights->brevointegration->read',
@@ -110,7 +110,7 @@ class modBrevoIntegration extends DolibarrModules
             'leftmenu' => 'brevointegration_logs',
             'url' => '/brevointegration/admin/logs.php',
             'langs' => 'brevointegration@brevointegration',
-            'picto' => 'icon-picto-brevo@brevointegration',
+            'picto' => 'icon-picto-brevo.svg@brevointegration',
             'position' => 102,
             'enabled' => '\$conf->brevointegration->enabled && \$user->admin',
             'perms' => '\$user->admin',
