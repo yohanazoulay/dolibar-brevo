@@ -96,7 +96,7 @@ if ($error !== '') {
     print '<table class="noborder centpercent">';
     print '<tr class="liste_titre">';
     print '<th>'.$langs->trans('BrevoListId').'</th>';
-    print '<th>'.$langs->trans('Label').'</th>';
+    print '<th>'.$langs->trans('BrevoListLabel').'</th>';
     print '<th>'.$langs->trans('BrevoTotalContacts').'</th>';
     print '</tr>';
 

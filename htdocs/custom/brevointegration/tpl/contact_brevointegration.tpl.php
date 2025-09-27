@@ -55,7 +55,7 @@ if (in_array('thirdpartycard', $context)) {
             <table class="noborder centpercent">
                 <thead>
                     <tr class="liste_titre">
-                        <th><?php echo dol_escape_htmltag($langs->trans('BrevoListId')); ?></th>
+                        <th><?php echo dol_escape_htmltag($langs->trans('BrevoListLabel')); ?></th>
                         <th><?php echo dol_escape_htmltag($langs->trans('BrevoStatus')); ?></th>
                         <th><?php echo dol_escape_htmltag($langs->trans('Date')); ?></th>
                         <th>&nbsp;</th>
@@ -64,7 +64,14 @@ if (in_array('thirdpartycard', $context)) {
                 <tbody>
                     <?php foreach ($syncEntries as $entry) { ?>
                         <tr>
-                            <td><?php echo (int) $entry['brevo_list_id']; ?></td>
+                            <td>
+                                <?php if (!empty($entry['brevo_list_label'])) { ?>
+                                    <?php echo dol_escape_htmltag($entry['brevo_list_label']); ?>
+                                    <div class="opacitymedium"><?php echo dol_escape_htmltag($langs->trans('BrevoListId')); ?> : <?php echo (int) $entry['brevo_list_id']; ?></div>
+                                <?php } else { ?>
+                                    <?php echo (int) $entry['brevo_list_id']; ?>
+                                <?php } ?>
+                            </td>
                             <td><?php echo dol_escape_htmltag($langs->trans('BrevoStatus'.ucfirst($entry['status']))); ?></td>
                             <td><?php echo dol_escape_htmltag(dol_print_date($entry['date_sync'], 'dayhour')); ?></td>
                             <td class="right">

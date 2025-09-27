@@ -32,7 +32,7 @@ class modBrevoIntegration extends DolibarrModules
         $this->editor_url = 'https://www.meditrust.fr';
         $this->name = preg_replace('/^mod/i', '', get_class($this));
         $this->description = 'Brevo integration for Dolibarr';
-        $this->version = '1.1.0';
+        $this->version = '1.2.1';
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
         $this->special = 0;
         $this->picto = 'brevointegration@brevointegration';

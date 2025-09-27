@@ -17,6 +17,7 @@ BrevoNoListFound=Aucune liste Brevo disponible.
 BrevoSelectListLabel=Liste cible
 BrevoPushButton=Pousser vers Brevo
 BrevoCurrentSubscriptions=Abonnements Brevo
+BrevoListLabel=Liste Brevo
 BrevoListId=ID Liste
 BrevoStatus=Statut
 BrevoStatusOk=Actif

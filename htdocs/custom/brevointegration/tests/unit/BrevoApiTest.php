@@ -56,4 +56,22 @@ class BrevoApiTest extends TestCase
 
         $this->assertSame(array(12, 34), $api->lastPayload['listIds']);
     }
+
+    public function testGetListUsesExpectedEndpoint(): void
+    {
+        $api = new class(new DoliDB(), new stdClass(), 'abc', new NullBrevoLogService()) extends BrevoApi {
+            public $lastEndpoint;
+
+            protected function request($method, $endpoint, $payload = null)
+            {
+                $this->lastEndpoint = $endpoint;
+
+                return array('success' => true, 'http_code' => 200, 'data' => array());
+            }
+        };
+
+        $api->getList(42);
+
+        $this->assertSame('/contacts/lists/42', $api->lastEndpoint);
+    }
 }

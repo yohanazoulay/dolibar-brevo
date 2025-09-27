@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.1] - 2024-05-29
+### Added
+- Stockage du libellé des listes Brevo synchronisées pour afficher un titre compréhensible dans les fiches contact et tiers.
+- Script SQL d'upgrade et tests unitaires adaptés au nouveau champ `brevo_list_label`.
+
 ## [1.2.0] - 2024-05-28
 ### Added
 - Configuration avancée des correspondances de champs Dolibarr/Brevo (champs standards et extrafields) avec interface d'administration dédiée.

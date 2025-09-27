@@ -9,6 +9,7 @@ CREATE TABLE llx_brevo_contactsync (
     fk_socpeople INT NOT NULL DEFAULT 0,
     fk_societe INT NOT NULL DEFAULT 0,
     brevo_list_id INT NOT NULL,
+    brevo_list_label VARCHAR(255) NOT NULL DEFAULT '',
     brevo_contact_id VARCHAR(128) NOT NULL,
     date_sync DATETIME NOT NULL,
     status VARCHAR(16) NOT NULL DEFAULT 'ok',
