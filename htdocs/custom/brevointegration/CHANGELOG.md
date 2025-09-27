@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Changed
+- Utilisation du picto Brevo dédié pour le module et ses menus Dolibarr.
+
 ## [1.2.1] - 2024-05-29
 ### Added
 - Stockage du libellé des listes Brevo synchronisées pour afficher un titre compréhensible dans les fiches contact et tiers.
