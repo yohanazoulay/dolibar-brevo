@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2024-05-25
+### Changed
+- Renommage du module en **Brevo Integration** avec mise à jour des chemins Dolibarr et des constantes de configuration.
+
 ## [1.0.0] - 2024-05-25
 ### Added
 - Module Brevo par Meditrust initial release.

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * @package   brevo-par-Meditrust
+ * @package   brevointegration
  * @author    Meditrust
  * @license   GPL-3.0-or-later
  * @brief     Template displayed on contact/thirdparty cards for Brevo integration.

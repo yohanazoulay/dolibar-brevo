@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * @package   brevo-par-Meditrust
+ * @package   brevointegration
  * @author    Meditrust
  * @license   GPL-3.0-or-later
  * @brief     Hooks to integrate Brevo actions inside Dolibarr cards.
@@ -12,13 +12,13 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/functions.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
-dol_include_once('/brevo-par-Meditrust/class/brevoapi.class.php');
-dol_include_once('/brevo-par-Meditrust/class/brevosync.class.php');
+dol_include_once('/brevointegration/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/brevosync.class.php');
 
 /**
- * Class ActionsBrevo
+ * Class ActionsBrevointegration
  */
-class ActionsBrevo
+class ActionsBrevointegration
 {
     /** @var DoliDB */
     public $db;
@@ -44,7 +44,7 @@ class ActionsBrevo
     {
         global $langs, $conf, $user;
 
-        if (empty($conf->brevo->enabled)) {
+        if (empty($conf->brevointegration->enabled)) {
             return 0;
         }
 
@@ -53,7 +53,7 @@ class ActionsBrevo
             return 0;
         }
 
-        $langs->load('brevo@brevo-par-Meditrust');
+        $langs->load('brevointegration@brevointegration');
 
         $brevoAction = GETPOST('brevo_action', 'alpha');
         if ($brevoAction === '') {
@@ -65,7 +65,7 @@ class ActionsBrevo
             return -1;
         }
 
-        $apiKey = !empty($conf->global->MAIN_BREVO_APIKEY) ? $conf->global->MAIN_BREVO_APIKEY : '';
+        $apiKey = !empty($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : '';
         if ($apiKey === '') {
             setEventMessages($langs->trans('BrevoMissingApiKey'), null, 'errors');
             return -1;
@@ -84,7 +84,7 @@ class ActionsBrevo
         }
 
         if ($brevoAction === 'push') {
-            if (empty($user->rights->brevo->write)) {
+            if (empty($user->rights->brevointegration->write)) {
                 setEventMessages($langs->trans('NotEnoughPermissions'), null, 'errors');
                 return -1;
             }
@@ -116,7 +116,7 @@ class ActionsBrevo
 
             setEventMessages($langs->trans('BrevoSyncSuccess'), null, 'mesgs');
         } elseif ($brevoAction === 'remove') {
-            if (empty($user->rights->brevo->delete)) {
+            if (empty($user->rights->brevointegration->delete)) {
                 setEventMessages($langs->trans('NotEnoughPermissions'), null, 'errors');
                 return -1;
             }
@@ -158,7 +158,7 @@ class ActionsBrevo
     {
         global $langs, $conf, $user;
 
-        if (empty($conf->brevo->enabled)) {
+        if (empty($conf->brevointegration->enabled)) {
             return 0;
         }
 
@@ -167,12 +167,12 @@ class ActionsBrevo
             return 0;
         }
 
-        $langs->load('brevo@brevo-par-Meditrust');
+        $langs->load('brevointegration@brevointegration');
 
         $lists = array();
         $listsError = '';
-        if (!empty($conf->global->MAIN_BREVO_APIKEY) && !empty($user->rights->brevo->read)) {
-            $api = new BrevoApi($this->db, $conf, $conf->global->MAIN_BREVO_APIKEY);
+        if (!empty($conf->global->MAIN_BREVOINTEGRATION_APIKEY) && !empty($user->rights->brevointegration->read)) {
+            $api = new BrevoApi($this->db, $conf, $conf->global->MAIN_BREVOINTEGRATION_APIKEY);
             $response = $api->getLists(50, 0);
             if (!empty($response['success']) && isset($response['data']['lists'])) {
                 $lists = $response['data']['lists'];
@@ -195,7 +195,7 @@ class ActionsBrevo
             'form' => $form,
         );
 
-        $hookmanager->resprints .= $this->renderTemplate('contact_brevo.tpl.php', $parameters);
+        $hookmanager->resprints .= $this->renderTemplate('contact_brevointegration.tpl.php', $parameters);
 
         return 0;
     }
@@ -211,7 +211,7 @@ class ActionsBrevo
     {
         global $conf, $langs;
 
-        $templatePath = dol_buildpath('/brevo-par-Meditrust/tpl/'.$template);
+        $templatePath = dol_buildpath('/brevointegration/tpl/'.$template);
         if (!is_readable($templatePath)) {
             return '';
         }

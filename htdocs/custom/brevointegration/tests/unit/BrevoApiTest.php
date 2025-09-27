@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-dol_include_once('/brevo-par-Meditrust/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/brevoapi.class.php');
 
 /**
  * @covers BrevoApi

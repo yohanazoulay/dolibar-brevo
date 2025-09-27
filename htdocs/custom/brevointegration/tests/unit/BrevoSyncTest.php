@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-dol_include_once('/brevo-par-Meditrust/class/brevosync.class.php');
+dol_include_once('/brevointegration/class/brevosync.class.php');
 
 if (!defined('MAIN_DB_PREFIX')) {
     define('MAIN_DB_PREFIX', 'llx_');

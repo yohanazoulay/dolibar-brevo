@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * @package   brevo-par-Meditrust
+ * @package   brevointegration
  * @author    Meditrust
  * @license   GPL-3.0-or-later
  * @brief     Administration page to configure Brevo API key.
@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 require '../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
-dol_include_once('/brevo-par-Meditrust/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/brevoapi.class.php');
 
 global $langs, $user, $conf, $db;
 
@@ -19,7 +19,7 @@ if (!$user->admin) {
 }
 
 $langs->load('admin');
-$langs->load('brevo@brevo-par-Meditrust');
+$langs->load('brevointegration@brevointegration');
 
 $action = GETPOST('action', 'alpha');
 
@@ -28,15 +28,15 @@ if ($action === 'setapikey') {
         accessforbidden();
     }
 
-    $apiKey = trim(GETPOST('BREVO_APIKEY', 'restricthtml'));
+    $apiKey = trim(GETPOST('BREVOINTEGRATION_APIKEY', 'restricthtml'));
     if ($apiKey === '') {
-        dolibarr_del_const($db, 'MAIN_BREVO_APIKEY', $conf->entity);
+        dolibarr_del_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $conf->entity);
         setEventMessages($langs->trans('BrevoApiKeyRemoved'), null, 'mesgs');
     } else {
         $api = new BrevoApi($db, $conf, $apiKey);
         $response = $api->validateApiKey($apiKey);
         if (!empty($response['success'])) {
-            dolibarr_set_const($db, 'MAIN_BREVO_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
+            dolibarr_set_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
             setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
         } else {
             setEventMessages($response['error'], null, 'errors');
@@ -48,7 +48,7 @@ $helpUrl = '';
 llxHeader('', $langs->trans('BrevoSetupTitle'), $helpUrl);
 
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php">'.$langs->trans('BackToModuleList').'</a>';
-print load_fiche_titre($langs->trans('BrevoSetupTitle'), $linkback, 'brevo@brevo-par-Meditrust');
+print load_fiche_titre($langs->trans('BrevoSetupTitle'), $linkback, 'brevointegration@brevointegration');
 
 $token = newToken();
 ?>
@@ -63,7 +63,7 @@ $token = newToken();
         <tr>
             <td class="fieldrequired"><?php echo $langs->trans('BrevoApiKeyLabel'); ?></td>
             <td>
-                <input type="text" name="BREVO_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->MAIN_BREVO_APIKEY) ? $conf->global->MAIN_BREVO_APIKEY : ''); ?>" />
+                <input type="text" name="BREVOINTEGRATION_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : ''); ?>" />
             </td>
         </tr>
     </table>

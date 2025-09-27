@@ -2,25 +2,25 @@
 declare(strict_types=1);
 
 /**
- * @package   brevo-par-Meditrust
+ * @package   brevointegration
  * @author    Meditrust
  * @license   GPL-3.0-or-later
  * @brief     Page to display Brevo contact lists.
  */
 
 require '../../../main.inc.php';
-dol_include_once('/brevo-par-Meditrust/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/brevoapi.class.php');
 
 global $langs, $db, $conf, $user;
 
-if (empty($conf->brevo->enabled)) {
+if (empty($conf->brevointegration->enabled)) {
     accessforbidden();
 }
-if (empty($user->rights->brevo->read)) {
+if (empty($user->rights->brevointegration->read)) {
     accessforbidden();
 }
 
-$langs->load('brevo@brevo-par-Meditrust');
+$langs->load('brevointegration@brevointegration');
 $langs->load('other');
 
 $limit = GETPOST('limit', 'int');
@@ -37,7 +37,7 @@ $lists = array();
 $total = 0;
 $error = '';
 
-$apiKey = isset($conf->global->MAIN_BREVO_APIKEY) ? $conf->global->MAIN_BREVO_APIKEY : '';
+$apiKey = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : '';
 if ($apiKey === '') {
     $error = $langs->trans('BrevoMissingApiKey');
 } else {
@@ -54,7 +54,7 @@ if ($apiKey === '') {
 $title = $langs->trans('BrevoListsTitle');
 llxHeader('', $title);
 
-print load_fiche_titre($title, '', 'brevo@brevo-par-Meditrust');
+print load_fiche_titre($title, '', 'brevointegration@brevointegration');
 
 if ($error !== '') {
     print '<div class="error">'.dol_escape_htmltag($error).'</div>';
