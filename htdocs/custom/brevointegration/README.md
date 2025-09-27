@@ -4,7 +4,7 @@
 
 1. Copier le dossier `brevointegration` dans `htdocs/custom/` de votre instance Dolibarr 21.0.2.
 2. Connectez-vous en tant qu'administrateur et activez le module **Brevo Integration** depuis la page des modules.
-3. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer la table de synchronisation si nécessaire.
+3. Exécutez le script SQL `sql/llx_brevo_contactsync.sql` via l'interface Dolibarr (ou import SQL) pour créer les tables de synchronisation et de journalisation (`llx_brevo_contactsync`, `llx_brevo_log`).
 
 ### Déploiement via l'assistant Dolibarr
 
@@ -34,11 +34,15 @@ Le zip distribué doit contenir **un unique dossier racine** `brevointegration/`
 ```
 brevointegration/
 ├── admin/
+│   ├── logs.php
 │   └── setup.php
 ├── class/
 │   ├── actions_brevointegration.class.php
 │   ├── brevoapi.class.php
-│   └── brevosync.class.php
+│   ├── brevolog.class.php
+│   ├── brevosync.class.php
+│   └── services/
+│       └── brevologservice.class.php
 ├── core/
 │   └── modules/
 │       └── modBrevoIntegration.class.php
@@ -78,6 +82,7 @@ Cette structure garantit la compatibilité avec l'assistant « Déployer module
   - Visualiser les listes dans lesquelles le contact est inscrit.
   - Retirer le contact d'une liste (`POST /contacts/lists/{id}/contacts/remove`).
 - Les synchronisations sont mémorisées dans la table `llx_brevo_contactsync` avec le statut et la date de dernière action.
+- Les appels API Brevo sont historisés dans `llx_brevo_log` et consultables depuis **Configuration > Brevo Logs** (module activé).
 
 ## Tests
 

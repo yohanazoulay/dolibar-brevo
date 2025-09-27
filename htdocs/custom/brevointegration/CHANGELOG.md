@@ -21,3 +21,8 @@
 - Synchronisation des contacts Dolibarr vers Brevo et mémorisation en base.
 - Retrait d'un contact d'une liste Brevo depuis Dolibarr.
 - Tests unitaires pour l'API wrapper et la DAO de synchronisation.
+# [1.1.0] - 2024-05-28
+### Added
+- Page d'administration des journaux Brevo avec filtre par période et pagination.
+- Journalisation automatique des appels API Brevo (méthode, statut HTTP, temps de réponse, message).
+
