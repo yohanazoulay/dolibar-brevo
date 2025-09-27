@@ -31,6 +31,12 @@ class FakeBrevoLogDB extends DoliDB
     /** @var string */
     public $lasterror = '';
 
+    /** @var bool */
+    public $tableExists = true;
+
+    /** @var array<int,string> */
+    public $schemaColumns = array('rowid', 'entity', 'date_event', 'method', 'endpoint', 'http_code', 'duration_ms', 'success', 'message');
+
     public function escape($value)
     {
         return addslashes((string) $value);
@@ -99,6 +105,25 @@ class FakeBrevoLogDB extends DoliDB
     public function num_rows($result)
     {
         return count($result->rows);
+    }
+
+    public function table_exists($table)
+    {
+        return $this->tableExists;
+    }
+
+    public function DDLDescTable($table, $type = '', $fullname = '', $strict = false)
+    {
+        if (!$this->tableExists) {
+            return array();
+        }
+
+        $fields = array();
+        foreach ($this->schemaColumns as $column) {
+            $fields[$column] = array('name' => $column);
+        }
+
+        return array('fields' => $fields);
     }
 
     private function handleInsert($sql)
@@ -321,5 +346,31 @@ class BrevoLogServiceTest extends TestCase
         $this->assertSame(1, $result['total']);
         $this->assertCount(1, $result['logs']);
         $this->assertSame('/account', $result['logs'][0]['endpoint']);
+    }
+
+    public function testFetchLogsReturnsEmptyWhenTableMissing(): void
+    {
+        $db = new FakeBrevoLogDB();
+        $db->tableExists = false;
+        $conf = new stdClass();
+
+        $service = new BrevoLogService($db, $conf);
+        $result = $service->fetchLogs(time(), time(), 10, 0, 'date_event', 'DESC');
+
+        $this->assertSame(0, $result['total']);
+        $this->assertCount(0, $result['logs']);
+    }
+
+    public function testLogRequestSkippedWhenSchemaIncomplete(): void
+    {
+        $db = new FakeBrevoLogDB();
+        $db->schemaColumns = array('rowid', 'entity');
+        $conf = new stdClass();
+        $conf->entity = 1;
+
+        $service = new BrevoLogService($db, $conf);
+        $service->logRequest('GET', '/ping', 200, 50, true, '');
+
+        $this->assertCount(0, $db->data);
     }
 }

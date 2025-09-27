@@ -24,6 +24,9 @@ class BrevoLogService
     /** @var Conf|stdClass */
     private $conf;
 
+    /** @var array{exists:bool,fields:array<string,string>}|null */
+    private $logTableSchema = null;
+
     /**
      * @param DoliDB     $db   Database handler
      * @param Conf|mixed $conf Global configuration
@@ -52,6 +55,11 @@ class BrevoLogService
         }
 
         if (!is_object($this->db) || !method_exists($this->db, 'query')) {
+            return;
+        }
+
+        $status = $this->getLogStorageStatus();
+        if (!$status['ready']) {
             return;
         }
 
@@ -92,22 +100,35 @@ class BrevoLogService
             return array('total' => 0, 'logs' => array());
         }
 
-        $table = MAIN_DB_PREFIX.'brevo_log';
-        $filters = array('entity='.(int) $this->getEntity());
-
-        if ($startTimestamp !== null && method_exists($this->db, 'idate')) {
-            $filters[] = 'date_event >= '.$this->db->idate($startTimestamp);
-        } elseif ($startTimestamp !== null) {
-            $filters[] = "date_event >= '".date('Y-m-d H:i:s', (int) $startTimestamp)."'";
+        $status = $this->getLogStorageStatus();
+        if (!$status['ready']) {
+            return array('total' => 0, 'logs' => array());
         }
 
-        if ($endTimestamp !== null && method_exists($this->db, 'idate')) {
-            $filters[] = 'date_event <= '.$this->db->idate($endTimestamp);
-        } elseif ($endTimestamp !== null) {
-            $filters[] = "date_event <= '".date('Y-m-d H:i:s', (int) $endTimestamp)."'";
+        $schema = $this->describeLogTable();
+        $fields = $schema['fields'];
+        $table = $this->getLogTableName();
+
+        $filters = array();
+        if (isset($fields['entity'])) {
+            $filters[] = $fields['entity'].'='.(int) $this->getEntity();
         }
 
-        $whereClause = implode(' AND ', $filters);
+        if ($startTimestamp !== null && isset($fields['date_event'])) {
+            $startSql = $this->formatDateForSql($startTimestamp);
+            if ($startSql !== null) {
+                $filters[] = $fields['date_event'].' >= '.$startSql;
+            }
+        }
+
+        if ($endTimestamp !== null && isset($fields['date_event'])) {
+            $endSql = $this->formatDateForSql($endTimestamp);
+            if ($endSql !== null) {
+                $filters[] = $fields['date_event'].' <= '.$endSql;
+            }
+        }
+
+        $whereClause = !empty($filters) ? implode(' AND ', $filters) : '1=1';
 
         $countSql = 'SELECT COUNT(*) as total FROM '.$table.' WHERE '.$whereClause;
         $countResult = $this->db->query($countSql);
@@ -123,15 +144,32 @@ class BrevoLogService
             $this->db->free($countResult);
         }
 
-        $allowedSortfields = array('date_event', 'method', 'http_code', 'duration_ms', 'success');
+        $allowedSortfields = array();
+        foreach (array('date_event', 'method', 'http_code', 'duration_ms', 'success') as $candidate) {
+            if (isset($fields[$candidate])) {
+                $allowedSortfields[] = $candidate;
+            }
+        }
+
         if ($sortfield === null || !in_array($sortfield, $allowedSortfields, true)) {
-            $sortfield = 'date_event';
+            $sortfield = !empty($allowedSortfields) ? $allowedSortfields[0] : null;
         }
         $sortorder = strtoupper((string) $sortorder) === 'ASC' ? 'ASC' : 'DESC';
 
-        $sql = 'SELECT rowid, date_event, method, endpoint, http_code, duration_ms, success, message';
-        $sql .= ' FROM '.$table.' WHERE '.$whereClause;
-        $sql .= ' ORDER BY '.$sortfield.' '.$sortorder;
+        $selectMap = $this->buildSelectMap($fields);
+        if (empty($selectMap)) {
+            return array('total' => $total, 'logs' => array());
+        }
+
+        $selectParts = array();
+        foreach ($selectMap as $alias => $columnName) {
+            $selectParts[] = $columnName.' AS '.$alias;
+        }
+
+        $sql = 'SELECT '.implode(', ', $selectParts).' FROM '.$table.' WHERE '.$whereClause;
+        if ($sortfield !== null) {
+            $sql .= ' ORDER BY '.$fields[$sortfield].' '.$sortorder;
+        }
         if (method_exists($this->db, 'plimit')) {
             $sql .= $this->db->plimit($limit, $offset);
         } else {
@@ -153,10 +191,10 @@ class BrevoLogService
             }
 
             $logs[] = array(
-                'id' => isset($obj->rowid) ? (int) $obj->rowid : 0,
-                'date_event' => $this->convertDate($obj->date_event),
-                'method' => (string) $obj->method,
-                'endpoint' => (string) $obj->endpoint,
+                'id' => isset($obj->id) ? (int) $obj->id : 0,
+                'date_event' => isset($obj->date_event) ? $this->convertDate($obj->date_event) : 0,
+                'method' => isset($obj->method) ? (string) $obj->method : '',
+                'endpoint' => isset($obj->endpoint) ? (string) $obj->endpoint : '',
                 'http_code' => isset($obj->http_code) ? (int) $obj->http_code : 0,
                 'duration_ms' => isset($obj->duration_ms) ? (int) $obj->duration_ms : 0,
                 'success' => isset($obj->success) ? (int) $obj->success : 0,
@@ -169,6 +207,31 @@ class BrevoLogService
         }
 
         return array('total' => $total, 'logs' => $logs);
+    }
+
+    /**
+     * Expose the current state of the Brevo log storage table.
+     *
+     * @return array{table_name:string,exists:bool,ready:bool,missing_columns:array<int,string>,available_columns:array<int,string>}
+     */
+    public function getLogStorageStatus()
+    {
+        $schema = $this->describeLogTable();
+        $required = $this->getRequiredLogColumns();
+        $missing = array();
+        foreach ($required as $column) {
+            if (!isset($schema['fields'][$column])) {
+                $missing[] = $column;
+            }
+        }
+
+        return array(
+            'table_name' => $this->getLogTableName(),
+            'exists' => $schema['exists'],
+            'ready' => $schema['exists'] && empty($missing),
+            'missing_columns' => $missing,
+            'available_columns' => array_keys($schema['fields'])
+        );
     }
 
     /**
@@ -232,5 +295,129 @@ class BrevoLogService
         }
 
         return $value;
+    }
+
+    /**
+     * Retrieve the fully qualified table name.
+     *
+     * @return string
+     */
+    private function getLogTableName()
+    {
+        if (defined('MAIN_DB_PREFIX')) {
+            return MAIN_DB_PREFIX.'brevo_log';
+        }
+
+        return 'brevo_log';
+    }
+
+    /**
+     * Describe the Brevo log table structure.
+     *
+     * @return array{exists:bool,fields:array<string,string>}
+     */
+    private function describeLogTable()
+    {
+        if ($this->logTableSchema !== null) {
+            return $this->logTableSchema;
+        }
+
+        $schema = array('exists' => false, 'fields' => array());
+
+        if (!defined('MAIN_DB_PREFIX') || !is_object($this->db)) {
+            $this->logTableSchema = $schema;
+
+            return $schema;
+        }
+
+        $table = $this->getLogTableName();
+
+        if (method_exists($this->db, 'DDLDescTable')) {
+            $info = $this->db->DDLDescTable($table, '', '', true);
+            if (is_array($info) && isset($info['fields']) && is_array($info['fields']) && !empty($info['fields'])) {
+                $schema['exists'] = true;
+                foreach ($info['fields'] as $fieldName => $definition) {
+                    $canonical = strtolower((string) $fieldName);
+                    $schema['fields'][$canonical] = (string) $fieldName;
+                }
+
+                $this->logTableSchema = $schema;
+
+                return $schema;
+            }
+        }
+
+        if (method_exists($this->db, 'table_exists')) {
+            $schema['exists'] = $this->db->table_exists($table) ? true : false;
+        }
+
+        if ($schema['exists'] && empty($schema['fields'])) {
+            foreach ($this->getRequiredLogColumns() as $column) {
+                $schema['fields'][$column] = $column;
+            }
+        }
+
+        $this->logTableSchema = $schema;
+
+        return $schema;
+    }
+
+    /**
+     * List mandatory log columns.
+     *
+     * @return array<int,string>
+     */
+    private function getRequiredLogColumns()
+    {
+        return array('rowid', 'entity', 'date_event', 'method', 'endpoint', 'http_code', 'duration_ms', 'success', 'message');
+    }
+
+    /**
+     * Format a timestamp for SQL comparisons.
+     *
+     * @param int $timestamp
+     * @return string|null
+     */
+    private function formatDateForSql($timestamp)
+    {
+        $timestamp = (int) $timestamp;
+        if ($timestamp <= 0) {
+            return null;
+        }
+
+        if (method_exists($this->db, 'idate')) {
+            return $this->db->idate($timestamp);
+        }
+
+        return "'".date('Y-m-d H:i:s', $timestamp)."'";
+    }
+
+    /**
+     * Build the SELECT clause mapping for the log retrieval query.
+     *
+     * @param array<string,string> $fields
+     * @return array<string,string>
+     */
+    private function buildSelectMap(array $fields)
+    {
+        $mapping = array(
+            'rowid' => 'id',
+            'date_event' => 'date_event',
+            'method' => 'method',
+            'endpoint' => 'endpoint',
+            'http_code' => 'http_code',
+            'duration_ms' => 'duration_ms',
+            'success' => 'success',
+            'message' => 'message'
+        );
+
+        $selectMap = array();
+        foreach ($mapping as $field => $alias) {
+            if (isset($fields[$field])) {
+                $selectMap[$alias] = $fields[$field];
+            }
+        }
+
+        return $selectMap;
     }
 }

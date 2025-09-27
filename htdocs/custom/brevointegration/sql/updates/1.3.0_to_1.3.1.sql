@@ -1,0 +1,2 @@
+-- Upgrade script from 1.3.0 to 1.3.1
+-- No schema changes are required for this version. This file ensures Dolibarr registers the new release.
