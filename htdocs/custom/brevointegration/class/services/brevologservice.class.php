@@ -8,11 +8,7 @@ declare(strict_types=1);
  * @brief     Service layer to persist and retrieve Brevo API call logs.
  */
 
-dol_include_once('/brevointegration/class/brevolog.class.php');
 dol_include_once('/brevointegration/class/services/brevodatabasemaintenanceservice.class.php');
-if (!class_exists('BrevoLog')) {
-    require_once __DIR__.'/../brevolog.class.php';
-}
 
 /**
  * Class BrevoLogService
@@ -43,7 +39,7 @@ class BrevoLogService
     }
 
     /**
-     * Persist a Brevo API call log entry.
+     * Record a Brevo API call in the database.
      *
      * @param string $method      HTTP method used
      * @param string $endpoint    Endpoint path
@@ -53,7 +49,7 @@ class BrevoLogService
      * @param string $message     Optional error message
      * @return void
      */
-    public function logRequest($method, $endpoint, $httpCode, $durationMs, $success, $message = '')
+    public function record(string $method, string $endpoint, int $httpCode, int $durationMs, bool $success, string $message = ''): void
     {
         if (!defined('MAIN_DB_PREFIX')) {
             return;
@@ -68,20 +64,48 @@ class BrevoLogService
             return;
         }
 
-        $log = new BrevoLog($this->db);
-        $log->entity = $this->getEntity();
-        $log->date_event = dol_now();
-        $log->method = $this->truncate($method, 8);
-        $log->endpoint = $this->truncate($endpoint, 255);
-        $log->http_code = (int) $httpCode;
-        $log->duration_ms = (int) $durationMs;
-        $log->success = $success ? 1 : 0;
-        $log->message = $message !== '' ? $this->truncate($message, 1024) : '';
+        $now = dol_now();
+        $dateSql = method_exists($this->db, 'idate') ? $this->db->idate($now) : "'".date('Y-m-d H:i:s', (int) $now)."'";
 
-        $result = $log->create();
-        if ($result <= 0) {
-            dol_syslog(__METHOD__.' failed to persist log: '.$log->error, LOG_WARNING);
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."brevo_log (entity, date_event, method, endpoint, http_code, duration_ms, success, message) VALUES (";
+        $sql .= (int) $this->getEntity().',';
+        $sql .= $dateSql.',';
+        $sql .= "'".$this->db->escape($this->truncate($method, 8))."',";
+        $sql .= "'".$this->db->escape($this->truncate($endpoint, 255))."',";
+        $sql .= (int) $httpCode.',';
+        $sql .= (int) $durationMs.',';
+        $sql .= ($success ? 1 : 0).',';
+        if ($message !== '') {
+            $sql .= "'".$this->db->escape($this->truncate($message, 1024))."'";
+        } else {
+            $sql .= 'NULL';
         }
+        $sql .= ')';
+
+        try {
+            $resql = $this->db->query($sql);
+            if ($resql === false) {
+                dol_syslog(__METHOD__.' SQL error: '.$this->db->lasterror(), LOG_ERR);
+            }
+        } catch (Throwable $exception) {
+            dol_syslog(__METHOD__.' exception: '.$exception->getMessage(), LOG_ERR);
+        }
+    }
+
+    /**
+     * Backward compatibility wrapper.
+     *
+     * @param string $method
+     * @param string $endpoint
+     * @param int    $httpCode
+     * @param int    $durationMs
+     * @param bool   $success
+     * @param string $message
+     * @return void
+     */
+    public function logRequest($method, $endpoint, $httpCode, $durationMs, $success, $message = '')
+    {
+        $this->record((string) $method, (string) $endpoint, (int) $httpCode, (int) $durationMs, (bool) $success, (string) $message);
     }
 
     /**

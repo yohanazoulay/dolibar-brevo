@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 require __DIR__.'/../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
-dol_include_once('/brevointegration/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/BrevoClient.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
@@ -180,10 +180,9 @@ if (!$user->admin) {
     accessforbidden();
 }
 
-$langs->load('admin');
-$langs->load('brevointegration@brevointegration');
+$langs->loadLangs(array('admin', 'other', 'brevointegration@brevointegration'));
 
-$action = GETPOST('action', 'alpha');
+$action = GETPOST('action', 'aZ09');
 $selectedTab = GETPOST('tab', 'alpha');
 $mappingService = new BrevoFieldMappingService($db, $conf);
 $categoryMappingService = new BrevoCategoryMappingService($db, $conf);
@@ -199,40 +198,61 @@ if (!in_array($selectedTab, $availableTabs, true)) {
     $selectedTab = 'configuration';
 }
 
-if ($action === 'setapikey') {
-    if (!checkToken()) {
-        accessforbidden();
-    }
-    try {
-        $apiKey = trim(GETPOST('BREVOINTEGRATION_APIKEY', 'restricthtml'));
+try {
+    if ($action === 'saveapikey') {
+        if (!checkToken()) {
+            accessforbidden();
+        }
+
+        $apiKey = trim(GETPOST('BREVO_APIKEY', 'restricthtml'));
         if ($apiKey === '') {
-            dolibarr_del_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $conf->entity);
+            dolibarr_del_const($db, 'BREVO_APIKEY', $conf->entity);
+            unset($conf->global->BREVO_APIKEY);
             setEventMessages($langs->trans('BrevoApiKeyRemoved'), null, 'mesgs');
         } else {
-            $api = new BrevoApi($db, $conf, $apiKey);
-            $response = $api->validateApiKey($apiKey);
-            if (!empty($response['success'])) {
-                dolibarr_set_const($db, 'MAIN_BREVOINTEGRATION_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
-                setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+            dolibarr_set_const($db, 'BREVO_APIKEY', $apiKey, 'chaine', 0, '', $conf->entity);
+            $conf->global->BREVO_APIKEY = $apiKey;
+            setEventMessages($langs->trans('BrevoApiKeySaved'), null, 'mesgs');
+        }
+
+        $action = '';
+    } elseif ($action === 'testapikey') {
+        if (!checkToken()) {
+            accessforbidden();
+        }
+
+        $apiKey = isset($conf->global->BREVO_APIKEY) ? trim((string) $conf->global->BREVO_APIKEY) : '';
+        if ($apiKey === '') {
+            setEventMessages($langs->trans('BrevoApiKeyInvalid'), null, 'errors');
+        } else {
+            $client = new BrevoClient($db, $conf, $apiKey);
+            $result = $client->validateApiKey($apiKey);
+
+            $httpCode = isset($result['http_code']) ? (int) $result['http_code'] : 0;
+            $duration = isset($result['duration_ms']) ? (int) $result['duration_ms'] : 0;
+            $success = !empty($result['success']);
+            $errorMessage = isset($result['error']) && is_string($result['error']) ? trim($result['error']) : '';
+
+            $logService = new BrevoLogService($db, $conf);
+            $logService->record('GET', '/v3/account', $httpCode, $duration, $success, $errorMessage);
+
+            if ($success) {
+                setEventMessages($langs->trans('BrevoConnectionOk', $httpCode, $duration), null, 'mesgs');
             } else {
-                $errorMessage = isset($response['error']) ? (string) $response['error'] : '';
-                if ($errorMessage === 'Missing PHP cURL extension') {
-                    $errorMessage = $langs->trans('BrevoMissingCurlExtension');
-                }
-                if ($errorMessage === 'Missing PHP JSON extension') {
-                    $errorMessage = $langs->trans('BrevoMissingJsonExtension');
-                }
-                if ($errorMessage === '') {
-                    $errorMessage = $langs->trans('Error');
-                }
-                setEventMessages($errorMessage, null, 'errors');
+                $displayMessage = $errorMessage !== '' ? $errorMessage : $langs->trans('BrevoConnectionFail');
+                setEventMessages($langs->trans('BrevoConnectionFailWithDetails', $displayMessage, $httpCode, $duration), null, 'errors');
             }
         }
-    } catch (Throwable $exception) {
-        dol_syslog(__FILE__.'::setapikey '.$exception->getMessage(), LOG_ERR);
-        setEventMessages($langs->trans('BrevoApiKeyUnexpectedError'), null, 'errors');
+
+        $action = '';
     }
-} elseif ($action === 'savefieldmapping') {
+} catch (Throwable $exception) {
+    dol_syslog(__FILE__.'::setup_action '.$exception->getMessage(), LOG_ERR);
+    setEventMessages($langs->trans('ErrorInternalError'), null, 'errors');
+    $action = '';
+}
+
+if ($action === 'savefieldmapping') {
     if (!checkToken()) {
         accessforbidden();
     }
@@ -292,6 +312,7 @@ dol_fiche_head($head, $selectedTab, $langs->trans('BrevoSetupTitle'), -1, 'icon-
 
 if ($selectedTab === 'configuration') {
     $token = newToken();
+    $testToken = newToken();
     $mappingToken = newToken();
     $categoryToken = newToken();
     $contactMapping = $mappingService->getMappingForType('contact');
@@ -305,11 +326,11 @@ if ($selectedTab === 'configuration') {
     $availableCategories = $categoryMappingService->getAllContactCategories();
     $categoryLists = array();
     $categoryListError = '';
-    $apiKeyForLists = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? trim($conf->global->MAIN_BREVOINTEGRATION_APIKEY) : '';
+    $apiKeyForLists = isset($conf->global->BREVO_APIKEY) ? trim((string) $conf->global->BREVO_APIKEY) : '';
     if ($apiKeyForLists === '') {
         $categoryListError = $langs->trans('BrevoMissingApiKey');
     } else {
-        $listsApi = new BrevoApi($db, $conf, $apiKeyForLists);
+        $listsApi = new BrevoClient($db, $conf, $apiKeyForLists);
         $listsResponse = $listsApi->getLists(200, 0);
         if (!empty($listsResponse['success']) && !empty($listsResponse['data']['lists'])) {
             foreach ($listsResponse['data']['lists'] as $list) {
@@ -358,7 +379,7 @@ if ($selectedTab === 'configuration') {
     ?>
     <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="form-horizontal">
         <input type="hidden" name="token" value="<?php echo $token; ?>" />
-        <input type="hidden" name="action" value="setapikey" />
+        <input type="hidden" name="action" value="saveapikey" />
         <input type="hidden" name="tab" value="configuration" />
         <table class="noborder" width="100%">
             <tr class="liste_titre">
@@ -368,13 +389,19 @@ if ($selectedTab === 'configuration') {
             <tr>
                 <td class="fieldrequired"><?php echo $langs->trans('BrevoApiKeyLabel'); ?></td>
                 <td>
-                    <input type="text" name="BREVOINTEGRATION_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : ''); ?>" />
+                    <input type="text" name="BREVO_APIKEY" size="60" value="<?php echo dol_escape_htmltag(isset($conf->global->BREVO_APIKEY) ? $conf->global->BREVO_APIKEY : ''); ?>" />
                 </td>
             </tr>
         </table>
         <div class="center">
-            <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('Save')); ?>" />
+            <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('BrevoSave')); ?>" />
         </div>
+    </form>
+    <form action="<?php echo dol_escape_htmltag($_SERVER['PHP_SELF']); ?>" method="post" class="center mtop">
+        <input type="hidden" name="token" value="<?php echo $testToken; ?>" />
+        <input type="hidden" name="action" value="testapikey" />
+        <input type="hidden" name="tab" value="configuration" />
+        <input type="submit" class="button" value="<?php echo dol_escape_htmltag($langs->trans('BrevoTestConnection')); ?>" />
     </form>
     <h3><?php echo dol_escape_htmltag($langs->trans('BrevoFieldMappingTitle')); ?></h3>
     <p class="opacitymedium"><?php echo $langs->trans('BrevoFieldMappingIntro'); ?></p>
@@ -513,8 +540,8 @@ if ($selectedTab === 'configuration') {
     </form>
     <?php
 } elseif ($selectedTab === 'diagnostic') {
-    dol_include_once('/brevointegration/core/modules/modBrevoIntegration.class.php');
-    $moduleDescriptor = new modBrevoIntegration($db);
+    dol_include_once('/brevointegration/core/modules/modBrevointegration.class.php');
+    $moduleDescriptor = new modBrevointegration($db);
     $moduleVersion = $moduleDescriptor->version;
     $logService = new BrevoLogService($db, $conf);
 
@@ -568,7 +595,7 @@ if ($selectedTab === 'configuration') {
         );
     }
 
-    $apiKey = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? trim((string) $conf->global->MAIN_BREVOINTEGRATION_APIKEY) : '';
+    $apiKey = isset($conf->global->BREVO_APIKEY) ? trim((string) $conf->global->BREVO_APIKEY) : '';
     if ($apiKey === '') {
         $sections['configuration']['checks'][] = array(
             'label' => $langs->trans('BrevoDiagnosticApiKeyConfigured'),
@@ -584,8 +611,8 @@ if ($selectedTab === 'configuration') {
 
         if (function_exists('curl_init')) {
             try {
-                $api = new BrevoApi($db, $conf, $apiKey);
-                $validation = $api->validateApiKey($apiKey);
+                $client = new BrevoClient($db, $conf, $apiKey);
+                $validation = $client->validateApiKey($apiKey);
                 if (!empty($validation['success'])) {
                     $sections['configuration']['checks'][] = array(
                         'label' => $langs->trans('BrevoDiagnosticApiKeyValidation'),

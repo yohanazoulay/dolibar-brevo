@@ -12,7 +12,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/functions.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
-dol_include_once('/brevointegration/class/brevoapi.class.php');
+dol_include_once('/brevointegration/class/BrevoClient.class.php');
 dol_include_once('/brevointegration/class/brevosync.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
@@ -67,13 +67,13 @@ class ActionsBrevointegration
             return -1;
         }
 
-        $apiKey = !empty($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? $conf->global->MAIN_BREVOINTEGRATION_APIKEY : '';
+        $apiKey = !empty($conf->global->BREVO_APIKEY) ? (string) $conf->global->BREVO_APIKEY : '';
         if ($apiKey === '') {
             setEventMessages($langs->trans('BrevoMissingApiKey'), null, 'errors');
             return -1;
         }
 
-        $api = new BrevoApi($this->db, $conf, $apiKey);
+        $api = new BrevoClient($this->db, $conf, $apiKey);
         $sync = new BrevoSync($this->db);
         $categoryService = new BrevoCategoryMappingService($this->db, $conf);
 
@@ -107,7 +107,8 @@ class ActionsBrevointegration
             $attributes = $this->buildContactAttributes($object, $context);
             $response = $api->upsertContact($email, $attributes, array($listId));
             if (empty($response['success'])) {
-                setEventMessages($response['error'], null, 'errors');
+                $errorMessage = isset($response['error']) && is_string($response['error']) ? $response['error'] : $langs->trans('BrevoConnectionFail');
+                setEventMessages($errorMessage, null, 'errors');
                 return -1;
             }
 
@@ -139,7 +140,8 @@ class ActionsBrevointegration
 
             $response = $api->removeContactsFromList($listId, array($email));
             if (empty($response['success'])) {
-                setEventMessages($response['error'], null, 'errors');
+                $errorMessage = isset($response['error']) && is_string($response['error']) ? $response['error'] : $langs->trans('BrevoConnectionFail');
+                setEventMessages($errorMessage, null, 'errors');
                 return -1;
             }
 
@@ -230,8 +232,8 @@ class ActionsBrevointegration
         $listsError = '';
         $listLabelCache = array();
         $apiInstance = null;
-        if (!empty($conf->global->MAIN_BREVOINTEGRATION_APIKEY) && !empty($user->rights->brevointegration->read)) {
-            $apiInstance = new BrevoApi($this->db, $conf, $conf->global->MAIN_BREVOINTEGRATION_APIKEY);
+        if (!empty($conf->global->BREVO_APIKEY) && !empty($user->rights->brevointegration->read)) {
+            $apiInstance = new BrevoClient($this->db, $conf, (string) $conf->global->BREVO_APIKEY);
             $response = $apiInstance->getLists(50, 0);
             if (!empty($response['success']) && isset($response['data']['lists'])) {
                 $lists = $response['data']['lists'];
@@ -243,7 +245,7 @@ class ActionsBrevointegration
                     $listLabelCache[$listId] = isset($list['name']) ? (string) $list['name'] : '';
                 }
             } elseif (!empty($response['error'])) {
-                $listsError = $response['error'];
+                $listsError = is_string($response['error']) ? $response['error'] : $langs->trans('BrevoConnectionFail');
             }
         }
 
@@ -281,11 +283,11 @@ class ActionsBrevointegration
     /**
      * Retrieve Brevo list label by identifier.
      *
-     * @param BrevoApi $api    API wrapper
+     * @param BrevoClient $api    API wrapper
      * @param int      $listId List identifier
      * @return string
      */
-    private function fetchListLabel(BrevoApi $api, $listId)
+    private function fetchListLabel(BrevoClient $api, $listId)
     {
         $listId = (int) $listId;
         if ($listId <= 0) {
@@ -305,10 +307,10 @@ class ActionsBrevointegration
      *
      * @param array<int,array<string,mixed>> $mappings        Mapping entries for the contact
      * @param array<int,string>              $listLabelCache  Cached list labels
-     * @param BrevoApi|null                  $api             Optional API instance to resolve missing labels
+     * @param BrevoClient|null               $api             Optional API instance to resolve missing labels
      * @return array<int,array<string,mixed>>
      */
-    private function buildCategorySummary(array $mappings, array &$listLabelCache, ?BrevoApi $api = null)
+    private function buildCategorySummary(array $mappings, array &$listLabelCache, ?BrevoClient $api = null)
     {
         $summary = array();
 
@@ -332,7 +334,7 @@ class ActionsBrevointegration
             }
 
             $listLabel = isset($listLabelCache[$listId]) ? $listLabelCache[$listId] : '';
-            if ($listLabel === '' && $api instanceof BrevoApi) {
+            if ($listLabel === '' && $api instanceof BrevoClient) {
                 $listLabel = $this->fetchListLabel($api, $listId);
                 if ($listLabel !== '') {
                     $listLabelCache[$listId] = $listLabel;
