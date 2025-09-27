@@ -96,6 +96,12 @@ class ActionsBrevointegration
                 return -1;
             }
 
+            $listLabel = '';
+            $listResponse = $api->getList($listId);
+            if (!empty($listResponse['success']) && !empty($listResponse['data']['name'])) {
+                $listLabel = (string) $listResponse['data']['name'];
+            }
+
             $attributes = $this->buildContactAttributes($object, $context);
             $response = $api->upsertContact($email, $attributes, array($listId));
             if (empty($response['success'])) {
@@ -106,6 +112,7 @@ class ActionsBrevointegration
             $sync->fk_socpeople = $contactId;
             $sync->fk_societe = $thirdpartyId;
             $sync->brevo_list_id = $listId;
+            $sync->brevo_list_label = $listLabel;
             $sync->brevo_contact_id = isset($response['data']['id']) ? (string) $response['data']['id'] : $email;
             $sync->status = 'ok';
 

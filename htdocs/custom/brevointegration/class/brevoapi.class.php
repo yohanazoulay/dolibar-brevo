@@ -89,6 +89,19 @@ class BrevoApi
     }
 
     /**
+     * Retrieve a single Brevo contact list
+     *
+     * @param int $listId List identifier
+     * @return array
+     */
+    public function getList($listId)
+    {
+        $endpoint = '/contacts/lists/'.(int) $listId;
+
+        return $this->request('GET', $endpoint);
+    }
+
+    /**
      * Create or update a contact in Brevo
      *
      * @param string $email      Contact email

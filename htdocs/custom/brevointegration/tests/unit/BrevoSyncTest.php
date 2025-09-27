@@ -106,7 +106,7 @@ class FakeDoliDB extends DoliDB
             $this->lasterror = 'Malformed INSERT';
             return false;
         }
-        $values = explode(',', $matches[1]);
+        $values = str_getcsv($matches[1], ',', "'", '\\');
         $this->lastId++;
         $this->data[] = array(
             'rowid' => $this->lastId,
@@ -114,9 +114,10 @@ class FakeDoliDB extends DoliDB
             'fk_socpeople' => (int) $values[1],
             'fk_societe' => (int) $values[2],
             'brevo_list_id' => (int) $values[3],
-            'brevo_contact_id' => trim($values[4], "'"),
-            'date_sync' => strtotime(trim($values[5], "'")),
-            'status' => trim($values[6], "'"),
+            'brevo_list_label' => $values[4],
+            'brevo_contact_id' => $values[5],
+            'date_sync' => strtotime($values[6]),
+            'status' => $values[7],
         );
 
         return true;
@@ -137,6 +138,9 @@ class FakeDoliDB extends DoliDB
                 }
                 if (isset($conditions['brevo_contact_id'])) {
                     $row['brevo_contact_id'] = $conditions['brevo_contact_id'];
+                }
+                if (isset($conditions['brevo_list_label'])) {
+                    $row['brevo_list_label'] = $conditions['brevo_list_label'];
                 }
                 if (isset($conditions['date_sync'])) {
                     $row['date_sync'] = $conditions['date_sync'];
@@ -161,6 +165,7 @@ class FakeDoliDB extends DoliDB
                     'fk_socpeople' => $row['fk_socpeople'],
                     'fk_societe' => $row['fk_societe'],
                     'brevo_list_id' => $row['brevo_list_id'],
+                    'brevo_list_label' => $row['brevo_list_label'],
                     'brevo_contact_id' => $row['brevo_contact_id'],
                     'date_sync' => date('Y-m-d H:i:s', $row['date_sync']),
                     'status' => $row['status'],
@@ -179,6 +184,7 @@ class FakeDoliDB extends DoliDB
             'fk_socpeople' => 0,
             'fk_societe' => null,
             'brevo_list_id' => 0,
+            'brevo_list_label' => null,
             'rowid' => null,
             'status' => null,
             'brevo_contact_id' => null,
@@ -204,6 +210,9 @@ class FakeDoliDB extends DoliDB
         }
         if (preg_match("/brevo_contact_id='([^']+)'/", $sql, $m)) {
             $conditions['brevo_contact_id'] = $m[1];
+        }
+        if (preg_match("/brevo_list_label='([^']*)'/", $sql, $m)) {
+            $conditions['brevo_list_label'] = $m[1];
         }
         if (preg_match("/date_sync='([^']+)'/", $sql, $m)) {
             $conditions['date_sync'] = strtotime($m[1]);
@@ -241,6 +250,7 @@ class BrevoSyncTest extends TestCase
         $sync->fk_socpeople = 1;
         $sync->fk_societe = 2;
         $sync->brevo_list_id = 10;
+        $sync->brevo_list_label = 'Newsletter';
         $sync->brevo_contact_id = 'ABC';
 
         $id = $sync->create($user);
@@ -250,6 +260,14 @@ class BrevoSyncTest extends TestCase
         $entries = $sync->fetchByContact(1, 2);
         $this->assertCount(1, $entries);
         $this->assertSame(10, $entries[0]['brevo_list_id']);
+        $this->assertSame('Newsletter', $entries[0]['brevo_list_label']);
+
+        $sync->brevo_list_label = 'VIP Newsletter';
+        $sync->brevo_contact_id = 'DEF';
+        $sync->create($user);
+
+        $entries = $sync->fetchByContact(1, 2);
+        $this->assertSame('VIP Newsletter', $entries[0]['brevo_list_label']);
 
         $sync->markRemoved(1, 2, 10);
         $this->assertSame('removed', $db->data[0]['status']);

@@ -39,6 +39,9 @@ class BrevoSync extends CommonObject
     public $brevo_list_id = 0;
 
     /** @var string */
+    public $brevo_list_label = '';
+
+    /** @var string */
     public $brevo_contact_id = '';
 
     /** @var string */
@@ -89,8 +92,11 @@ class BrevoSync extends CommonObject
         if ($obj) {
             $update = 'UPDATE '.MAIN_DB_PREFIX.$this->table_element;
             $update .= " SET status='".$this->db->escape($this->status)."',";
-            $update .= " brevo_contact_id='".$this->db->escape($this->brevo_contact_id)."',";
-            $update .= ' date_sync='.$this->db->idate($now);
+            $update .= " brevo_contact_id='".$this->db->escape($this->brevo_contact_id)."'";
+            if ($this->brevo_list_label !== '') {
+                $update .= ", brevo_list_label='".$this->db->escape($this->brevo_list_label)."'";
+            }
+            $update .= ', date_sync='.$this->db->idate($now);
             $update .= ' WHERE rowid='.(int) $obj->rowid;
 
             $res = $this->db->query($update);
@@ -102,11 +108,12 @@ class BrevoSync extends CommonObject
 
             $this->id = (int) $obj->rowid;
         } else {
-            $sql = 'INSERT INTO '.MAIN_DB_PREFIX.$this->table_element.' (entity, fk_socpeople, fk_societe, brevo_list_id, brevo_contact_id, date_sync, status) VALUES (';
+            $sql = 'INSERT INTO '.MAIN_DB_PREFIX.$this->table_element.' (entity, fk_socpeople, fk_societe, brevo_list_id, brevo_list_label, brevo_contact_id, date_sync, status) VALUES (';
             $sql .= $entity.',';
             $sql .= (int) $this->fk_socpeople.',';
             $sql .= (int) $this->fk_societe.',';
             $sql .= (int) $this->brevo_list_id.',';
+            $sql .= "'".$this->db->escape($this->brevo_list_label)."',";
             $sql .= "'".$this->db->escape($this->brevo_contact_id)."',";
             $sql .= $this->db->idate($now).',';
             $sql .= "'".$this->db->escape($this->status)."')";
@@ -173,7 +180,7 @@ class BrevoSync extends CommonObject
         global $conf;
         $entity = isset($conf->entity) ? (int) $conf->entity : 1;
 
-        $sql = 'SELECT rowid, fk_socpeople, fk_societe, brevo_list_id, brevo_contact_id, date_sync, status';
+        $sql = 'SELECT rowid, fk_socpeople, fk_societe, brevo_list_id, brevo_list_label, brevo_contact_id, date_sync, status';
         $sql .= ' FROM '.MAIN_DB_PREFIX.$this->table_element;
         $sql .= ' WHERE entity='.$entity;
         $sql .= ' AND fk_socpeople='.(int) $contactId;
@@ -194,6 +201,7 @@ class BrevoSync extends CommonObject
                 'fk_socpeople' => (int) $obj->fk_socpeople,
                 'fk_societe' => (int) $obj->fk_societe,
                 'brevo_list_id' => (int) $obj->brevo_list_id,
+                'brevo_list_label' => isset($obj->brevo_list_label) ? $obj->brevo_list_label : '',
                 'brevo_contact_id' => $obj->brevo_contact_id,
                 'date_sync' => $this->db->jdate($obj->date_sync),
                 'status' => $obj->status,
