@@ -13,6 +13,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 dol_include_once('/brevointegration/class/brevoapi.class.php');
 dol_include_once('/brevointegration/class/services/brevofieldmappingservice.class.php');
 dol_include_once('/brevointegration/class/services/brevocategorymappingservice.class.php');
+dol_include_once('/brevointegration/class/services/brevologservice.class.php');
 
 global $langs, $user, $conf, $db;
 
@@ -62,6 +63,69 @@ function brevointegration_parse_mapping_from_post($attributeKey, $fieldKey)
     }
 
     return $entries;
+}
+
+/**
+ * Render an HTML icon for diagnostic status.
+ *
+ * @param string   $status Status identifier (ok|warning|error)
+ * @param Translate $langs Language handler
+ * @return string
+ */
+function brevointegration_render_status_icon($status, $langs)
+{
+    switch ($status) {
+        case 'ok':
+            return img_picto($langs->trans('BrevoDiagnosticStatusOk'), 'tick');
+        case 'warning':
+            if (function_exists('img_warning')) {
+                return img_warning($langs->trans('BrevoDiagnosticStatusWarning'));
+            }
+
+            return img_picto($langs->trans('BrevoDiagnosticStatusWarning'), 'warning');
+        default:
+            return img_picto($langs->trans('BrevoDiagnosticStatusKo'), 'error');
+    }
+}
+
+/**
+ * Print a diagnostic table with given checks.
+ *
+ * @param string $title  Table title
+ * @param array  $checks List of checks (label,status,details)
+ * @param Translate $langs Language handler
+ * @return void
+ */
+function brevointegration_render_diagnostic_table($title, array $checks, $langs)
+{
+    if (empty($checks)) {
+        return;
+    }
+
+    print '<div class="box">';
+    print '    <h3>'.dol_escape_htmltag($title).'</h3>';
+    print '    <table class="noborder" width="100%">';
+    print '        <tr class="liste_titre">';
+    print '            <th>'.$langs->trans('BrevoDiagnosticParameter').'</th>';
+    print '            <th class="center">'.$langs->trans('BrevoDiagnosticStatus').'</th>';
+    print '            <th>'.$langs->trans('BrevoDiagnosticDetails').'</th>';
+    print '        </tr>';
+
+    foreach ($checks as $check) {
+        $rowClass = 'oddeven';
+        $label = isset($check['label']) ? $check['label'] : '';
+        $status = isset($check['status']) ? $check['status'] : 'error';
+        $details = isset($check['details']) ? $check['details'] : '';
+
+        print '        <tr class="'.$rowClass.'">';
+        print '            <td>'.dol_escape_htmltag($label).'</td>';
+        print '            <td class="center">'.brevointegration_render_status_icon($status, $langs).'</td>';
+        print '            <td>'.dol_htmlentitiesbr($details).'</td>';
+        print '        </tr>';
+    }
+
+    print '    </table>';
+    print '</div>';
 }
 
 /**
@@ -410,25 +474,122 @@ if ($selectedTab === 'configuration') {
 } elseif ($selectedTab === 'diagnostic') {
     dol_include_once('/brevointegration/core/modules/modBrevoIntegration.class.php');
     $moduleDescriptor = new modBrevoIntegration($db);
-    $moduleVersion = $moduleDescriptor->version;
+    $moduleVersion = (string) $moduleDescriptor->version;
+
+    $detectedDolVersion = defined('DOL_VERSION') ? (string) DOL_VERSION : '';
+    $normalizedDolVersion = preg_match('/^[0-9.]+$/', $detectedDolVersion) ? $detectedDolVersion : '0.0.0';
+    $displayDolVersion = $detectedDolVersion !== '' ? $detectedDolVersion : $langs->trans('BrevoDiagnosticUnknownValue');
+    $minimumDolVersion = '21.0.0';
+    $phpVersion = PHP_VERSION;
+    $environmentChecks = array();
+    $environmentChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticVersionLabel'),
+        'status' => 'ok',
+        'details' => $langs->trans('BrevoDiagnosticVersionDetails', dol_escape_htmltag($moduleVersion))
+    );
+    $environmentChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticDolibarrVersion'),
+        'status' => version_compare($normalizedDolVersion, $minimumDolVersion, '>=') ? 'ok' : 'warning',
+        'details' => $langs->trans('BrevoDiagnosticDolibarrVersionDetails', dol_escape_htmltag($displayDolVersion), $minimumDolVersion)
+    );
+    $environmentChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticPhpVersion'),
+        'status' => version_compare($phpVersion, '7.4.0', '>=') ? 'ok' : 'error',
+        'details' => $langs->trans('BrevoDiagnosticPhpVersionDetails', dol_escape_htmltag($phpVersion))
+    );
+    $moduleEnabled = isset($conf->brevointegration->enabled) && (bool) $conf->brevointegration->enabled;
+    $environmentChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticModuleEnabled'),
+        'status' => $moduleEnabled ? 'ok' : 'error',
+        'details' => $moduleEnabled ? $langs->trans('BrevoDiagnosticModuleEnabledDetailsEnabled') : $langs->trans('BrevoDiagnosticModuleEnabledDetailsDisabled')
+    );
+    $curlLoaded = function_exists('curl_init');
+    $environmentChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticCurlExtension'),
+        'status' => $curlLoaded ? 'ok' : 'error',
+        'details' => $curlLoaded ? $langs->trans('BrevoDiagnosticCurlExtensionDetailsEnabled') : $langs->trans('BrevoDiagnosticCurlExtensionDetailsMissing')
+    );
+
+    $apiKey = isset($conf->global->MAIN_BREVOINTEGRATION_APIKEY) ? trim((string) $conf->global->MAIN_BREVOINTEGRATION_APIKEY) : '';
+    $apiChecks = array();
+    if ($apiKey !== '') {
+        $maskedApiKey = str_repeat('*', max(strlen($apiKey) - 4, 0)).substr($apiKey, -4);
+        $apiChecks[] = array(
+            'label' => $langs->trans('BrevoDiagnosticApiKeyPresence'),
+            'status' => 'ok',
+            'details' => $langs->trans('BrevoDiagnosticApiKeyPresenceDetailsOk', dol_escape_htmltag($maskedApiKey))
+        );
+    } else {
+        $apiChecks[] = array(
+            'label' => $langs->trans('BrevoDiagnosticApiKeyPresence'),
+            'status' => 'warning',
+            'details' => $langs->trans('BrevoDiagnosticApiKeyPresenceDetailsMissing')
+        );
+    }
+
+    $apiValidationStatus = 'warning';
+    $apiValidationDetails = $langs->trans('BrevoDiagnosticApiKeyValidationDetailsMissingKey');
+    if ($apiKey !== '') {
+        if (!$curlLoaded) {
+            $apiValidationStatus = 'error';
+            $apiValidationDetails = $langs->trans('BrevoDiagnosticApiKeyValidationDetailsNoCurl');
+        } else {
+            try {
+                $diagnosticApi = new BrevoApi($db, $conf, $apiKey);
+                $validation = $diagnosticApi->validateApiKey($apiKey);
+            } catch (Exception $exception) {
+                $validation = array('success' => false, 'error' => $exception->getMessage());
+            }
+
+            if (!empty($validation['success'])) {
+                $apiValidationStatus = 'ok';
+                $apiValidationDetails = $langs->trans('BrevoDiagnosticApiKeyValidationDetailsOk');
+            } else {
+                $errorMessage = isset($validation['error']) ? (string) $validation['error'] : '';
+                if ($errorMessage === '') {
+                    $errorMessage = $langs->trans('Error');
+                }
+                $apiValidationStatus = 'error';
+                $apiValidationDetails = $langs->trans('BrevoDiagnosticApiKeyValidationDetailsKo', dol_escape_htmltag($errorMessage));
+            }
+        }
+    }
+
+    $apiChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticApiKeyValidation'),
+        'status' => $apiValidationStatus,
+        'details' => $apiValidationDetails
+    );
+
+    $logService = new BrevoLogService($db, $conf);
+    $logStorageStatus = $logService->getLogStorageStatus();
+    $logChecks = array();
+    $tableName = isset($logStorageStatus['table_name']) ? (string) $logStorageStatus['table_name'] : 'llx_brevo_log';
+    $logChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticLogStorage'),
+        'status' => !empty($logStorageStatus['exists']) ? 'ok' : 'error',
+        'details' => !empty($logStorageStatus['exists']) ? $langs->trans('BrevoDiagnosticLogStorageDetailsOk', dol_escape_htmltag($tableName)) : $langs->trans('BrevoDiagnosticLogStorageDetailsMissing', dol_escape_htmltag($tableName))
+    );
+    $missingColumns = isset($logStorageStatus['missing_columns']) ? $logStorageStatus['missing_columns'] : array();
+    $missingColumnsText = !empty($missingColumns) ? dol_escape_htmltag(implode(', ', $missingColumns)) : $langs->trans('BrevoDiagnosticLogStorageColumnsUnknown');
+    $logChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticLogStorageColumns'),
+        'status' => !empty($logStorageStatus['ready']) ? 'ok' : 'error',
+        'details' => !empty($logStorageStatus['ready']) ? $langs->trans('BrevoDiagnosticLogStorageColumnsDetailsOk') : $langs->trans('BrevoDiagnosticLogStorageColumnsDetailsMissing', $missingColumnsText)
+    );
+    $logFile = __DIR__.'/logs.php';
+    $logFileReadable = is_file($logFile) && is_readable($logFile);
+    $logChecks[] = array(
+        'label' => $langs->trans('BrevoDiagnosticLogPageAccess'),
+        'status' => $logFileReadable ? 'ok' : 'error',
+        'details' => $logFileReadable ? $langs->trans('BrevoDiagnosticLogPageAccessDetailsOk') : $langs->trans('BrevoDiagnosticLogPageAccessDetailsMissing')
+    );
 
     print '<div class="fichecenter">';
-    print '    <div class="fichehalfleft">';
-    print '        <div class="box">';
-    print '            <h3>'.$langs->trans('BrevoDiagnosticTitle').'</h3>';
-    print '            <p class="opacitymedium">'.$langs->trans('BrevoDiagnosticIntro').'</p>';
-    print '            <table class="noborder" width="100%">';
-    print '                <tr class="liste_titre">';
-    print '                    <th>'.$langs->trans('BrevoDiagnosticParameter').'</th>';
-    print '                    <th>'.$langs->trans('BrevoDiagnosticValue').'</th>';
-    print '                </tr>';
-    print '                <tr class="oddeven">';
-    print '                    <td>'.$langs->trans('BrevoDiagnosticVersionLabel').'</td>';
-    print '                    <td>'.dol_escape_htmltag((string) $moduleVersion).'</td>';
-    print '                </tr>';
-    print '            </table>';
-    print '        </div>';
-    print '    </div>';
+    print '    <p class="opacitymedium">'.$langs->trans('BrevoDiagnosticIntro').'</p>';
+    brevointegration_render_diagnostic_table($langs->trans('BrevoDiagnosticSectionEnvironment'), $environmentChecks, $langs);
+    brevointegration_render_diagnostic_table($langs->trans('BrevoDiagnosticSectionApi'), $apiChecks, $langs);
+    brevointegration_render_diagnostic_table($langs->trans('BrevoDiagnosticSectionLogs'), $logChecks, $langs);
     print '</div>';
 }
 

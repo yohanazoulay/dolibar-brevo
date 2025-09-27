@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.3.3] - 2025-10-04
+### Added
+- Checklist de diagnostic complète sur l'onglet dédié (environnement, clé API, base de données des journaux) avec pictogrammes succès/erreur pour expliquer les erreurs 500 rencontrées.
+
 ## [1.3.2] - 2025-10-03
 ### Fixed
 - Empêche l'erreur fatale lors de la validation de la clé API lorsque l'extension PHP cURL est absente et affiche un message explicite.
