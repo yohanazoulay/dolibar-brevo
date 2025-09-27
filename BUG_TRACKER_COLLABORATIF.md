@@ -60,3 +60,17 @@
     - Résultat : SQL pouvant échouer selon la configuration → 500.
 - **Solution retenue / correctif appliqué** : Introduction d'un client `BrevoClient` tolérant aux erreurs, séparation des actions « Enregistrer » / « Tester » avec vérification CSRF, requêtes SQL paginées sécurisées et messages utilisateur via `setEventMessages()`.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-12-SETUP-CHECKTOKEN
+- **ID du bug** : BUG-2025-10-12-SETUP-CHECKTOKEN
+- **Description** : Erreur fatale « Call to undefined function checkToken() » lors de l'enregistrement ou des actions POST sur `custom/brevointegration/admin/setup.php`.
+- **Date de détection** : 2025-10-12
+- **Étapes pour reproduire** :
+  1. Ouvrir `custom/brevointegration/admin/setup.php`.
+  2. Soumettre le formulaire (enregistrement de clé, test de connexion, mappings…).
+  3. Constater l'erreur 500 avec le message « Call to undefined function checkToken() » dans les logs.
+- **Solutions déjà testées** :
+  - Tentative 1 : Conserver les inclusions actuelles (`admin.lib.php` uniquement).
+    - Résultat : fonction `checkToken()` absente → erreur fatale.
+- **Solution retenue / correctif appliqué** : Charger explicitement `core/lib/security.lib.php` dans la page de configuration et les hooks pour garantir la disponibilité de `checkToken()`.
+- **Statut actuel** : corrigé
