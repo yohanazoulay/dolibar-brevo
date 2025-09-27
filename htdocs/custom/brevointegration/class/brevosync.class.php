@@ -11,6 +11,7 @@ declare(strict_types=1);
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobject.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+dol_include_once('/brevointegration/lib/brevointegration_date.lib.php');
 
 /**
  * Class BrevoSync
@@ -96,7 +97,8 @@ class BrevoSync extends CommonObject
             if ($this->brevo_list_label !== '') {
                 $update .= ", brevo_list_label='".$this->db->escape($this->brevo_list_label)."'";
             }
-            $update .= ', date_sync='.$this->db->idate($now);
+            $dateSql = brevointegration_format_sql_datetime($this->db, $now);
+            $update .= ', date_sync='.($dateSql !== null ? $dateSql : 'NULL');
             $update .= ' WHERE rowid='.(int) $obj->rowid;
 
             $res = $this->db->query($update);
@@ -115,7 +117,8 @@ class BrevoSync extends CommonObject
             $sql .= (int) $this->brevo_list_id.',';
             $sql .= "'".$this->db->escape($this->brevo_list_label)."',";
             $sql .= "'".$this->db->escape($this->brevo_contact_id)."',";
-            $sql .= $this->db->idate($now).',';
+            $dateSql = brevointegration_format_sql_datetime($this->db, $now);
+            $sql .= ($dateSql !== null ? $dateSql : 'NULL').',';
             $sql .= "'".$this->db->escape($this->status)."')";
 
             $res = $this->db->query($sql);
@@ -145,7 +148,8 @@ class BrevoSync extends CommonObject
     {
         $sql = 'UPDATE '.MAIN_DB_PREFIX.$this->table_element;
         $sql .= " SET status='removed'";
-        $sql .= ', date_sync='.$this->db->idate(dol_now());
+        $dateSql = brevointegration_format_sql_datetime($this->db, dol_now());
+        $sql .= ', date_sync='.($dateSql !== null ? $dateSql : 'NULL');
         global $conf;
         $entity = isset($conf->entity) ? (int) $conf->entity : 1;
 

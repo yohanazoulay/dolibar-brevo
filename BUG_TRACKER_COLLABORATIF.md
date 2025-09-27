@@ -88,3 +88,17 @@
     - Résultat : Erreur 500 persistante sans trace exploitable.
 - **Solution retenue / correctif appliqué** : Normalisation défensive des métadonnées de schéma dans `BrevoLogService`, conversion des colonnes en tableau typé et ajout d'une journalisation explicite côté interface admin.
 - **Statut actuel** : corrigé
+
+### BUG-2025-10-14-LOGS-IDATE-QUOTE
+- **ID du bug** : BUG-2025-10-14-LOGS-IDATE-QUOTE
+- **Description** : Les insertions dans `llx_brevo_log` échouent sur MariaDB/MySQL avec `DB_ERROR_SYNTAX` car `DoliDB::idate()` renvoie une date non quotée dans les requêtes construites dynamiquement.
+- **Date de détection** : 2025-10-14
+- **Étapes pour reproduire** :
+  1. Activer le module et lancer le test Diagnostic (`/brevointegration/diagnostic`).
+  2. Observer la requête `INSERT` générée sans quotes autour de `date_event`.
+  3. Constater l'erreur SQL dans `dolibarr.log`.
+- **Solutions déjà testées** :
+  - Tentative 1 : Encapsuler uniquement le fallback `date('Y-m-d H:i:s')` dans des quotes.
+    - Résultat : Marche seulement lorsque `idate()` n'est pas disponible.
+- **Solution retenue / correctif appliqué** : Ajout du helper `brevointegration_format_sql_datetime()` forçant les quotes si nécessaire et utilisation systématique dans `BrevoLogService`, `BrevoLog`, `BrevoSync` et `admin/logs.php`.
+- **Statut actuel** : corrigé

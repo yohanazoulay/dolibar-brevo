@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobject.class.php';
+dol_include_once('/brevointegration/lib/brevointegration_date.lib.php');
 
 /**
  * Class BrevoLog
@@ -73,11 +74,11 @@ class BrevoLog extends CommonObject
         $sql .= 'entity, date_event, method, endpoint, http_code, duration_ms, success, message';
         $sql .= ') VALUES (';
         $sql .= (int) $this->entity.',';
-        if (method_exists($this->db, 'idate')) {
-            $sql .= $this->db->idate($now).',';
-        } else {
-            $sql .= "'".date('Y-m-d H:i:s', (int) $now)."',";
+        $dateSql = brevointegration_format_sql_datetime($this->db, $now);
+        if ($dateSql === null) {
+            $dateSql = "'".date('Y-m-d H:i:s', (int) $now)."'";
         }
+        $sql .= $dateSql.',';
         $sql .= "'".$this->db->escape($this->method)."',";
         $sql .= "'".$this->db->escape($this->endpoint)."',";
         $sql .= (int) $this->http_code.',';

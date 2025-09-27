@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 dol_include_once('/brevointegration/class/services/brevodatabasemaintenanceservice.class.php');
+dol_include_once('/brevointegration/lib/brevointegration_date.lib.php');
 
 /**
  * Class BrevoLogService
@@ -65,7 +66,10 @@ class BrevoLogService
         }
 
         $now = dol_now();
-        $dateSql = method_exists($this->db, 'idate') ? $this->db->idate($now) : "'".date('Y-m-d H:i:s', (int) $now)."'";
+        $dateSql = brevointegration_format_sql_datetime($this->db, $now);
+        if ($dateSql === null) {
+            $dateSql = "'".date('Y-m-d H:i:s', (int) $now)."'";
+        }
 
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."brevo_log (entity, date_event, method, endpoint, http_code, duration_ms, success, message) VALUES (";
         $sql .= (int) $this->getEntity().',';
@@ -631,11 +635,12 @@ class BrevoLogService
             return null;
         }
 
-        if (method_exists($this->db, 'idate')) {
-            return $this->db->idate($timestamp);
+        $formatted = brevointegration_format_sql_datetime($this->db, $timestamp);
+        if ($formatted === null) {
+            $formatted = "'".date('Y-m-d H:i:s', $timestamp)."'";
         }
 
-        return "'".date('Y-m-d H:i:s', $timestamp)."'";
+        return $formatted;
     }
 
     /**

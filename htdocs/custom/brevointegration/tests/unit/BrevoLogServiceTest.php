@@ -37,6 +37,15 @@ class FakeBrevoLogDB extends DoliDB
     /** @var array<int,string> */
     public $schemaColumns = array('rowid', 'entity', 'date_event', 'method', 'endpoint', 'http_code', 'duration_ms', 'success', 'message');
 
+    /** @var bool */
+    public $idateRawMode = false;
+
+    /** @var string */
+    public $lastInsertSql = '';
+
+    /** @var string */
+    public $lastDateLiteral = '';
+
     public function escape($value)
     {
         return addslashes((string) $value);
@@ -44,7 +53,12 @@ class FakeBrevoLogDB extends DoliDB
 
     public function idate($timestamp)
     {
-        return "'".date('Y-m-d H:i:s', (int) $timestamp)."'";
+        $formatted = date('Y-m-d H:i:s', (int) $timestamp);
+        if ($this->idateRawMode) {
+            return $formatted;
+        }
+
+        return "'".$formatted."'";
     }
 
     public function jdate($dateValue)
@@ -128,6 +142,7 @@ class FakeBrevoLogDB extends DoliDB
 
     private function handleInsert($sql)
     {
+        $this->lastInsertSql = $sql;
         if (!preg_match('/VALUES \((.+)\)$/i', trim($sql), $matches)) {
             $this->lasterror = 'Malformed INSERT';
 
@@ -135,6 +150,7 @@ class FakeBrevoLogDB extends DoliDB
         }
 
         $values = $this->splitValues($matches[1]);
+        $this->lastDateLiteral = $values[1];
 
         $this->data[] = array(
             'rowid' => count($this->data) + 1,
@@ -359,6 +375,24 @@ class BrevoLogServiceTest extends TestCase
 
         $this->assertSame(0, $result['total']);
         $this->assertCount(0, $result['logs']);
+    }
+
+    public function testRecordQuotesDateWhenConnectorReturnsRawValue(): void
+    {
+        $db = new FakeBrevoLogDB();
+        $db->idateRawMode = true;
+        $conf = new stdClass();
+        $conf->entity = 2;
+
+        $service = new BrevoLogService($db, $conf);
+        $service->record('GET', '/ping', 200, 10, true, '');
+
+        $this->assertNotSame('', $db->lastInsertSql);
+        $this->assertNotSame('', $db->lastDateLiteral);
+        $literal = trim($db->lastDateLiteral);
+        $this->assertSame("'", $literal[0], 'Date literal must start with a quote');
+        $this->assertSame("'", substr($literal, -1), 'Date literal must end with a quote');
+        $this->assertCount(1, $db->data);
     }
 
     public function testLogRequestSkippedWhenSchemaIncomplete(): void
