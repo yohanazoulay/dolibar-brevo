@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.5] - 2025-10-07
+### Fixed
+- Empêche les erreurs 500 lors de l'enregistrement de la clé API Brevo en encapsulant les appels HTTP dans une gestion d'exceptions robuste.
+- Ajout d'un test unitaire garantissant le retour d'un message d'erreur contrôlé quand la validation de clé déclenche une exception inattendue.
+
 ## [1.3.4] - 2025-10-06
 ### Added
 - Génération d'un patch SQL depuis l'onglet Diagnostic pour recréer la table `llx_brevo_log` ou ajouter les colonnes manquantes.
