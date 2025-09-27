@@ -39,6 +39,23 @@ class BrevoApiTest extends TestCase
         $this->assertSame('Missing API key', $logService->records[0]['message']);
     }
 
+    public function testGetListsFailsWhenJsonExtensionMissing(): void
+    {
+        $logService = new NullBrevoLogService();
+        $api = new class(new DoliDB(), new stdClass(), 'abc', $logService) extends BrevoApi {
+            protected function isJsonExtensionAvailable()
+            {
+                return false;
+            }
+        };
+
+        $response = $api->getLists();
+
+        $this->assertFalse($response['success']);
+        $this->assertSame('Missing PHP JSON extension', $response['error']);
+        $this->assertSame('Missing PHP JSON extension', $logService->records[0]['message']);
+    }
+
     public function testUpsertContactCastsListIdsToIntegers(): void
     {
         $api = new class(new DoliDB(), new stdClass(), 'abc', new NullBrevoLogService()) extends BrevoApi {

@@ -171,6 +171,12 @@ class BrevoApi
             return $this->formatError('Missing PHP cURL extension');
         }
 
+        if (!$this->isJsonExtensionAvailable()) {
+            $this->recordLog($method, $endpoint, 0, 0, false, 'Missing PHP JSON extension');
+
+            return $this->formatError('Missing PHP JSON extension');
+        }
+
         $method = strtoupper((string) $method);
         $startTime = microtime(true);
 
@@ -234,6 +240,16 @@ class BrevoApi
 
             return $this->formatError('Unexpected client error: '.$exception->getMessage());
         }
+    }
+
+    /**
+     * Check whether the JSON extension is available.
+     *
+     * @return bool
+     */
+    protected function isJsonExtensionAvailable()
+    {
+        return function_exists('json_encode') && function_exists('json_decode');
     }
 
     /**

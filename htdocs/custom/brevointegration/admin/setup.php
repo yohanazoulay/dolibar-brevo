@@ -219,6 +219,9 @@ if ($action === 'setapikey') {
             if ($errorMessage === 'Missing PHP cURL extension') {
                 $errorMessage = $langs->trans('BrevoMissingCurlExtension');
             }
+            if ($errorMessage === 'Missing PHP JSON extension') {
+                $errorMessage = $langs->trans('BrevoMissingJsonExtension');
+            }
             if ($errorMessage === '') {
                 $errorMessage = $langs->trans('Error');
             }
