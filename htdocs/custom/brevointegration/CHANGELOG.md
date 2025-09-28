@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.3.19] - 2025-10-21
+### Fixed
+- Ajout d'un repli automatique sur `admin/logs.php` lorsque `list.lib.php` est absent afin d'éviter l'erreur 500 et de conserver une pagination simplifiée.
+- Journalisation et avertissement dédiés pour signaler l'utilisation du rendu de secours lorsque les helpers Dolibarr sont manquants.
+
 ## [1.3.18] - 2025-10-20
 ### Changed
 - Harmonisation du chargement de l'environnement Dolibarr pour supporter les installations du module en racine ou dans `htdocs/custom`.

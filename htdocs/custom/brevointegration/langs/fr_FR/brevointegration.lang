@@ -145,6 +145,7 @@ BrevoLogsMessage=Message
 BrevoLogsEmpty=Aucun appel enregistré sur la période sélectionnée.
 BrevoLogsStorageMissingTable=La table de journaux %s n'est pas installée. Veuillez exécuter le script SQL du module avant d'accéder à cette page.
 BrevoLogsStorageMissingColumns=La table de journaux Brevo est incomplète (colonnes manquantes : %s). Appliquez les scripts de mise à jour du module puis réessayez.
+BrevoLogsListFallbackNotice=Les fonctions de listes Dolibarr sont absentes sur cet hébergement. L'affichage des journaux Brevo utilise un en-tête de pagination simplifié.
 BrevoFieldMappingTitle=Correspondance des champs Dolibarr -> Brevo
 BrevoFieldMappingIntro=Associez les attributs Brevo aux champs standards ou personnalisés de Dolibarr pour enrichir les contacts synchronisés.
 BrevoFieldMappingContactTitle=Champs pour les contacts Dolibarr

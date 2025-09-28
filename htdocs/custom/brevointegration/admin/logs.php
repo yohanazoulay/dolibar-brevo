@@ -37,7 +37,6 @@ if (!defined('DOL_DOCUMENT_ROOT')) {
 }
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 dol_include_once('/brevointegration/class/services/brevologservice.class.php');
 dol_include_once('/brevointegration/lib/brevointegration_date.lib.php');
@@ -68,6 +67,177 @@ function brevointegrationBuildTimestamp($hour, $minute, $second, $month, $day, $
     }
 
     return (int) mktime($hour, $minute, $second, $month, $day, $year);
+}
+
+/**
+ * Attempt to load Dolibarr list helper functions and expose their availability.
+ *
+ * @return array{available:bool,source:string}
+ */
+function brevointegrationLoadListHelpers()
+{
+    static $result = null;
+
+    if ($result !== null) {
+        return $result;
+    }
+
+    $result = array('available' => false, 'source' => 'none');
+    $candidates = array(
+        'list.lib.php' => DOL_DOCUMENT_ROOT.'/core/lib/list.lib.php',
+        'functions2.lib.php' => DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php',
+    );
+
+    foreach ($candidates as $source => $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+
+        require_once $path;
+
+        if (function_exists('print_barre_liste') && function_exists('print_liste_field_titre')) {
+            $result = array('available' => true, 'source' => $source);
+
+            return $result;
+        }
+    }
+
+    if (function_exists('print_barre_liste') && function_exists('print_liste_field_titre')) {
+        $result = array('available' => true, 'source' => 'preloaded');
+
+        return $result;
+    }
+
+    return $result;
+}
+
+/**
+ * Build a query string from associative parameters while preserving zero values.
+ *
+ * @param array<string,int|string> $params
+ * @return string
+ */
+function brevointegrationBuildQueryString(array $params)
+{
+    $parts = array();
+
+    foreach ($params as $key => $value) {
+        if ($value === null) {
+            continue;
+        }
+
+        $stringValue = (string) $value;
+        if ($stringValue === '' && $value !== 0 && $value !== '0') {
+            continue;
+        }
+
+        $parts[] = rawurlencode((string) $key).'='.rawurlencode($stringValue);
+    }
+
+    return implode('&', $parts);
+}
+
+/**
+ * Render a minimalistic pagination header when Dolibarr list helpers are unavailable.
+ *
+ * @param string                   $title
+ * @param int                      $page
+ * @param int                      $limit
+ * @param int                      $total
+ * @param string                   $selfUrl
+ * @param array<string,int|string> $baseParams
+ * @return void
+ */
+function brevointegrationRenderFallbackListHeader($title, $page, $limit, $total, $selfUrl, array $baseParams)
+{
+    $start = 0;
+    $end = 0;
+    if ($total > 0 && $limit > 0) {
+        $start = ($page * $limit) + 1;
+        $end = min($total, ($page + 1) * $limit);
+    } elseif ($total > 0) {
+        $start = 1;
+        $end = $total;
+    }
+
+    $totalPages = ($limit > 0 && $total > 0) ? (int) ceil($total / $limit) : ($total > 0 ? 1 : 0);
+
+    print '<div class="liste_manual_header clearfix">';
+    print '<div class="inline-block"><strong>'.dol_escape_htmltag($title).'</strong>';
+    if ($total > 0) {
+        $rangeLabel = $start > 0 ? sprintf('%d-%d / %d', $start, $end, $total) : (string) $total;
+        print ' <span class="opacitymedium">'.dol_escape_htmltag($rangeLabel).'</span>';
+    }
+    print '</div>';
+
+    print '<div class="inline-block floatright">';
+
+    $prevDisabled = ($page <= 0);
+    if ($prevDisabled) {
+        print '<span class="button button-small disabled">&laquo;</span>';
+    } else {
+        $prevParams = array_merge($baseParams, array('page' => $page - 1));
+        $prevQuery = brevointegrationBuildQueryString($prevParams);
+        $prevUrl = dol_escape_htmltag($selfUrl).($prevQuery === '' ? '' : '?'.$prevQuery);
+        print '<a class="button button-small" href="'.$prevUrl.'">&laquo;</a>';
+    }
+
+    $pageLabel = $totalPages > 0 ? ($page + 1).' / '.$totalPages : '1 / 1';
+    print '<span class="button button-small disabled">'.dol_escape_htmltag($pageLabel).'</span>';
+
+    $nextDisabled = ($totalPages === 0) || ($page >= $totalPages - 1);
+    if ($nextDisabled) {
+        print '<span class="button button-small disabled">&raquo;</span>';
+    } else {
+        $nextParams = array_merge($baseParams, array('page' => $page + 1));
+        $nextQuery = brevointegrationBuildQueryString($nextParams);
+        $nextUrl = dol_escape_htmltag($selfUrl).($nextQuery === '' ? '' : '?'.$nextQuery);
+        print '<a class="button button-small" href="'.$nextUrl.'">&raquo;</a>';
+    }
+
+    print '</div>';
+    print '</div>';
+}
+
+/**
+ * Render list headers with manual sorting links when Dolibarr helpers are unavailable.
+ *
+ * @param array<int,array<string,string>> $columns
+ * @param string                          $selfUrl
+ * @param array<string,int|string>        $baseParams
+ * @param string                          $sortfield
+ * @param string                          $sortorder
+ * @return void
+ */
+function brevointegrationRenderFallbackTableHeaders(array $columns, $selfUrl, array $baseParams, $sortfield, $sortorder)
+{
+    print '<tr class="liste_titre">';
+
+    foreach ($columns as $column) {
+        $align = isset($column['align']) && $column['align'] !== '' ? ' '.trim((string) $column['align']) : '';
+        $field = isset($column['field']) ? (string) $column['field'] : '';
+        $isCurrentSort = ($field !== '' && strtolower($field) === strtolower((string) $sortfield));
+        $displayLabel = dol_escape_htmltag($column['label']);
+        if ($isCurrentSort) {
+            $displayLabel .= (strtoupper((string) $sortorder) === 'ASC') ? ' ▲' : ' ▼';
+        }
+
+        if ($field !== '') {
+            $nextOrder = ($isCurrentSort && strtoupper((string) $sortorder) === 'ASC') ? 'DESC' : 'ASC';
+            $params = array_merge($baseParams, array(
+                'page' => 0,
+                'sortfield' => $field,
+                'sortorder' => $nextOrder,
+            ));
+            $query = brevointegrationBuildQueryString($params);
+            $url = dol_escape_htmltag($selfUrl).($query === '' ? '' : '?'.$query);
+            $displayLabel = '<a href="'.$url.'" class="nowraponall">'.$displayLabel.'</a>';
+        }
+
+        print '<th class="liste_titre'.$align.'">'.$displayLabel.'</th>';
+    }
+
+    print '</tr>';
 }
 
 global $langs, $user, $conf, $db;
@@ -104,6 +274,23 @@ $selfUrl = isset($_SERVER['PHP_SELF']) ? (string) $_SERVER['PHP_SELF'] : '';
 try {
     $langs->load('admin');
     $langs->load('brevointegration@brevointegration');
+
+    $listHelpersInfo = brevointegrationLoadListHelpers();
+    $listHelpersAvailable = !empty($listHelpersInfo['available']);
+    $listHelpersSource = isset($listHelpersInfo['source']) ? (string) $listHelpersInfo['source'] : 'none';
+
+    brevointegration_logger_debug('logs.php list helpers detection', $httpContext + array(
+        'available' => $listHelpersAvailable,
+        'source' => $listHelpersSource,
+    ));
+
+    if (!$listHelpersAvailable) {
+        brevointegration_logger_info('logs.php list helpers unavailable, using fallback renderer', $httpContext + array(
+            'self' => $selfUrl,
+            'source' => $listHelpersSource,
+        ));
+        setEventMessages($langs->trans('BrevoLogsListFallbackNotice'), null, 'warnings');
+    }
 
     $form = new Form($db);
     $logService = new BrevoLogService($db, $conf);
@@ -177,20 +364,32 @@ try {
     $logs = array();
     $total = 0;
     $param = '';
+    $queryParams = array();
 
     if ($startTimestamp) {
         $param .= '&filter_startday='.date('d', $startTimestamp);
         $param .= '&filter_startmonth='.date('m', $startTimestamp);
         $param .= '&filter_startyear='.date('Y', $startTimestamp);
+        $queryParams['filter_startday'] = date('d', $startTimestamp);
+        $queryParams['filter_startmonth'] = date('m', $startTimestamp);
+        $queryParams['filter_startyear'] = date('Y', $startTimestamp);
     }
     if ($endTimestamp) {
         $param .= '&filter_endday='.date('d', $endTimestamp);
         $param .= '&filter_endmonth='.date('m', $endTimestamp);
         $param .= '&filter_endyear='.date('Y', $endTimestamp);
+        $queryParams['filter_endday'] = date('d', $endTimestamp);
+        $queryParams['filter_endmonth'] = date('m', $endTimestamp);
+        $queryParams['filter_endyear'] = date('Y', $endTimestamp);
     }
     if ($limit) {
         $param .= '&limit='.$limit;
+        $queryParams['limit'] = $limit;
     }
+
+    $queryParams['sortfield'] = $sortfield;
+    $queryParams['sortorder'] = $sortorder;
+    $queryParams['page'] = $page;
 
     if (!$storageStatus['exists']) {
         brevointegration_logger_error('logs.php missing table', $httpContext + array('status' => $storageStatus, 'self' => $selfUrl));
@@ -295,6 +494,7 @@ try {
         'limit' => $limit,
         'sortfield' => $sortfield,
         'sortorder' => $sortorder,
+        'list_helpers' => $listHelpersAvailable ? 'native' : 'fallback',
         'self' => $selfUrl,
     ));
 
@@ -325,28 +525,56 @@ try {
         print '</table>';
         print '</form>';
 
-        print_barre_liste(
-            $langs->trans('BrevoLogsListTitle'),
-            $page,
-            $selfUrl,
-            $param,
-            $sortfield,
-            $sortorder,
-            '',
-            $total,
-            $limit
-        );
+        if ($listHelpersAvailable) {
+            print_barre_liste(
+                $langs->trans('BrevoLogsListTitle'),
+                $page,
+                $selfUrl,
+                $param,
+                $sortfield,
+                $sortorder,
+                '',
+                $total,
+                $limit
+            );
+        } else {
+            brevointegrationRenderFallbackListHeader(
+                $langs->trans('BrevoLogsListTitle'),
+                $page,
+                $limit,
+                $total,
+                $selfUrl,
+                $queryParams
+            );
+        }
 
         print '<div class="div-table-responsive">';
         print '<table class="noborder tagtable liste">';
-        print '<tr class="liste_titre">';
-        print_liste_field_titre($langs->trans('BrevoLogsDate'), $selfUrl, 'date_event', '', $param, '', $sortfield, $sortorder);
-        print_liste_field_titre($langs->trans('BrevoLogsMethod'), $selfUrl, 'method', '', $param, '', $sortfield, $sortorder);
-        print_liste_field_titre($langs->trans('BrevoLogsEndpoint'), $selfUrl, 'endpoint', '', $param, '', $sortfield, $sortorder);
-        print_liste_field_titre($langs->trans('BrevoLogsStatus'), $selfUrl, 'http_code', '', $param, '', $sortfield, $sortorder, 'right');
-        print_liste_field_titre($langs->trans('BrevoLogsDuration'), $selfUrl, 'duration_ms', '', $param, '', $sortfield, $sortorder, 'right');
-        print '<th class="left">'.$langs->trans('BrevoLogsMessage').'</th>';
-        print '</tr>';
+        if ($listHelpersAvailable) {
+            print '<tr class="liste_titre">';
+            print_liste_field_titre($langs->trans('BrevoLogsDate'), $selfUrl, 'date_event', '', $param, '', $sortfield, $sortorder);
+            print_liste_field_titre($langs->trans('BrevoLogsMethod'), $selfUrl, 'method', '', $param, '', $sortfield, $sortorder);
+            print_liste_field_titre($langs->trans('BrevoLogsEndpoint'), $selfUrl, 'endpoint', '', $param, '', $sortfield, $sortorder);
+            print_liste_field_titre($langs->trans('BrevoLogsStatus'), $selfUrl, 'http_code', '', $param, '', $sortfield, $sortorder, 'right');
+            print_liste_field_titre($langs->trans('BrevoLogsDuration'), $selfUrl, 'duration_ms', '', $param, '', $sortfield, $sortorder, 'right');
+            print '<th class="left">'.$langs->trans('BrevoLogsMessage').'</th>';
+            print '</tr>';
+        } else {
+            brevointegrationRenderFallbackTableHeaders(
+                array(
+                    array('label' => $langs->trans('BrevoLogsDate'), 'field' => 'date_event', 'align' => ''),
+                    array('label' => $langs->trans('BrevoLogsMethod'), 'field' => 'method', 'align' => ''),
+                    array('label' => $langs->trans('BrevoLogsEndpoint'), 'field' => 'endpoint', 'align' => ''),
+                    array('label' => $langs->trans('BrevoLogsStatus'), 'field' => 'http_code', 'align' => 'right'),
+                    array('label' => $langs->trans('BrevoLogsDuration'), 'field' => 'duration_ms', 'align' => 'right'),
+                    array('label' => $langs->trans('BrevoLogsMessage'), 'field' => '', 'align' => 'left'),
+                ),
+                $selfUrl,
+                $queryParams,
+                $sortfield,
+                $sortorder
+            );
+        }
 
         if (empty($logs)) {
             $colspan = 6;
