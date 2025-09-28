@@ -131,6 +131,20 @@
 - **Solution retenue / correctif appliqué** : Création d'un logger dédié `brevo_admin.log` avec enregistrement systématique des requêtes, instrumentation complète du cycle de vie (démarrage, SQL, nombre de lignes, statut final) et encapsulation de la page dans un `try/catch`/`finally` pour afficher un message contrôlé (« Erreur SQL » ou « Erreur interne ») sans 500 silencieux.
 - **Statut actuel** : corrigé
 
+### BUG-2025-10-21-LOGS-LISTLIB
+- **ID du bug** : BUG-2025-10-21-LOGS-LISTLIB
+- **Description** : Erreur 500 sur `custom/brevointegration/admin/logs.php` lorsque `core/lib/list.lib.php` est absent sur les hébergements mutualisés (versions Dolibarr allégées), empêchant le rendu de la liste.
+- **Date de détection** : 2025-10-21
+- **Étapes pour reproduire** :
+  1. Déployer le module sur un Dolibarr où seuls `functions.lib.php`/`functions2.lib.php` sont disponibles (pas de `list.lib.php`).
+  2. Ouvrir `custom/brevointegration/admin/logs.php`.
+  3. Constater l'erreur HTTP 500 sans journal Brevo.
+- **Solutions déjà testées** :
+  - Tentative 1 : Charger uniquement `core/lib/list.lib.php`.
+    - Résultat : Inclusion impossible → erreur fatale.
+- **Solution retenue / correctif appliqué** : Détection proactive des helpers de listes, repli automatique vers `functions2.lib.php` et rendu manuel de l'entête/pagination avec avertissement utilisateur et trace dans `brevo_admin.log`.
+- **Statut actuel** : corrigé
+
 ### BUG-2025-10-16-DISABLE-CONST
 - **ID du bug** : BUG-2025-10-16-DISABLE-CONST
 - **Description** : Impossible de désactiver le module depuis la liste des modules Dolibarr, le curseur revient immédiatement à « activé ».

@@ -146,6 +146,7 @@ BrevoLogsMessage=Message
 BrevoLogsEmpty=No API call recorded for the selected period.
 BrevoLogsStorageMissingTable=The log table %s has not been created yet. Please run the module SQL script before using this page.
 BrevoLogsStorageMissingColumns=The Brevo log table is incomplete (missing columns: %s). Apply the module upgrade scripts and try again.
+BrevoLogsListFallbackNotice=Dolibarr list helpers are missing on this hosting. The Brevo logs view falls back to a simplified pagination header.
 BrevoFieldMappingTitle=Dolibarr to Brevo field mapping
 BrevoFieldMappingIntro=Map Brevo attributes to Dolibarr standard or custom fields to enrich synchronised contacts.
 BrevoFieldMappingContactTitle=Fields for Dolibarr contacts
